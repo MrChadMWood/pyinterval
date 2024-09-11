@@ -280,14 +280,20 @@ class Expression:
 
     def _apply_intervals_with_rollover(self, datetime):
         """Apply all intervals (year, quarter, month, etc.) recursively with default rollover behavior."""
+        adjustments = []
         current = self
         while not current.is_scope:
             if current.index >= 0:
-                datetime += current.unit.delta(current.index)
+                adjustments.append(current.unit.delta(current.index))        
             else:
                 # parent delta of 1 + (negative) child delta of index = delta to apply
-                datetime += current.parent.unit.delta(1) + current.unit.delta(current.index)
+                adjustments.append(current.parent.unit.delta(1) + current.unit.delta(current.index))
             current = current.parent
+
+        # Applied in reverse order to preserve logic
+        for adjustment in reversed(adjustments):
+            datetime += adjustment
+            
         return datetime
 
     def _apply_intervals_without_rollover(self, _datetime):
@@ -334,7 +340,7 @@ class Expression:
         # Traverse up the chain to build the representation
         while current:
             unit_name = current.unit.name if current.unit else 'Root'
-            index_str = f"[{current.index}]" if current.index is not None else ''
+            index_str = f"[{current.index + 1}]" if current.index is not None else ''
             parts.append(f'{unit_name}{index_str}')
             if current.is_scope:
                 current = None
