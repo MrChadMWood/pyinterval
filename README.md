@@ -1,3 +1,5 @@
+This library and its repository are still in its alpha stage.
+
 # Intuitive Relative Dates Library
 
 This library provides intuitive methods for interacting with relative dates, following a custom protocol for describing points in time.
