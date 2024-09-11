@@ -121,6 +121,86 @@ datetime.datetime(2024, 1, 1, 0, 0)
 datetime.datetime(2024, 12, 23, 5, 35, 53)
 ```
 
+---
+
+### Examples with `pyinterval`
+
+The following examples demonstrate how to use the `pyinterval` library to work with date and time expressions:
+
+#### Setup
+
+```python
+from pyinterval import Expression
+import datetime
+
+# Create an Expression instance
+exp = Expression()
+dt = datetime.datetime(2024, 12, 30, 12, 40, 35, 500000)
+```
+
+#### Extracting Components
+
+- **Year of a Date**
+
+  ```python
+  print(exp.year(dt))
+  
+  2024-01-01 00:00:00
+  ```
+
+- **Last week, fifth day of second month**
+
+  ```python
+  print(exp.year.month[1].week[-1].day[4](dt))
+  
+  2024-02-27 00:00:00
+  ```
+
+- **Fifth Weekday in the Current Week**
+
+  ```python
+  print(exp.week.day[4](dt))
+  
+  2025-01-03 00:00:00
+  ```
+
+- **Fourth Week's Fifth Day in the Last Month of the Quarter**
+
+  ```python
+  print(exp.quarter.month[-1].week[3].day[4](dt))
+  
+  2024-10-26 00:00:00
+  ```
+
+#### Handling Non-Existent Dates
+
+- **February 30th**
+
+  ```python
+  >>> # Reference to February 30th
+  >>> feb_30th = exp.year.month[1].day[29]
+  >>> print(feb_30th)
+  
+  Year > Month[2] > Day[30]
+
+  >>> # With rollover=True (default)
+  >>> print(feb_30th(dt))
+  
+  2024-03-01 00:00:00
+
+  >>> # With rollover=False
+  >>> print(feb_30th(dt, rollover=False))
+  
+  ---------------------------------------------------------------------------
+  ValueError                                Traceback (most recent call last)
+  Cell In[112], line 335, in Expression._apply_intervals_without_rollover(self, _datetime)
+      334 try:
+  --> 335     return datetime.datetime(**adjustments)
+      336 except ValueError as e:
+  
+  ValueError: day is out of range for month
+  ```
+
 ## Roadmap
 
 - Implement smart indexing `[star:stop:step]` to define time ranges. When called, return a list of datetime objects falling within the range, at the granularity specified by the expression.
