@@ -115,10 +115,10 @@ some_monday_exp = exp.week.day[0]
 some_monday = some_monday_exp(someday)
 
 # Add some time
-some_monday + exp.decade(n=1)
+some_monday + exp.decade.n(1)
 
 # Subtract some time
-some_monday - exp.centisecond(n=20)
+some_monday - exp.centisecond.n(-20)
 
 # Get more granular
 more_granular_exp = exp.day.hour[-4].second[573].millisecond[-12].microsecond[5]
