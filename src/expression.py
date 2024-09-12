@@ -27,21 +27,21 @@ class Expression:
             root_datetime (datetime.datetime): Initial datetime.
 
         Handled automatically, not passed by user.
-            unit (Unit): The Unit in this part of the expression
-            parent (Expression): The parent unit of this part of the expression
+            _unit (Unit): The Unit in this part of the expression
+            _parent (Expression): The parent unit of this part of the expression
     """
-    def __init__(self, root_datetime=None, unit=None, parent=None):
+    def __init__(self, root_datetime=None, _unit=None, _parent=None):
         is_scope = False
-        if parent and parent.unit:
-            if parent.unit.enum <= unit.enum:
-                raise ValueError(f'{parent.unit.name} cannot be factored by {unit.name}')
+        if _parent and _parent.unit:
+            if _parent.unit.enum <= _unit.enum:
+                raise ValueError(f'{_parent.unit.name} cannot be factored by {_unit.name}')
         elif unit:
             is_scope = True
         else:
             is_scope = None
 
-        self.unit = unit
-        self.parent = parent
+        self.unit = _unit
+        self.parent = _parent
         self.index = None
         self.is_scope = is_scope
         self.datetime = root_datetime
