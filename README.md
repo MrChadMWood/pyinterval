@@ -1,210 +1,139 @@
-This library and its repository are still in its alpha stage.
-
-# Intuitive Relative Dates Library
-
-This library provides intuitive methods for interacting with relative dates, following a custom protocol for describing points in time.
-
-## Custom Interval Expression Protocol
-
-Time is segmented into a flat hierarchy of intervals:
-
-```
-Microsecond < Second < Minute < ... < Year
-```
-
-To express a point in time, you must define a scope, ordinal, and unit:
-
-- **Scope**: The larger time unit (e.g., Year, Month) that gives context to the interval.
-- **Ordinal**: A number (positive or negative) specifying the particular instance of the unit within the scope.
-- **Unit**: The smaller time unit being measured (e.g., Day, Hour).
-
-These can be represented using dot notation: `Scope.Ordinal.Unit`. For example, `Year.2.Month` indicates the 3rd month of the year.
-
-## Interval Rules
-
-1. **Hierarchical Order**: The `Unit` must always be lower in the hierarchy than its `Scope`.
-   - Valid: `Year.2.Month` (Year is larger than Month)
-   - Invalid: `Day.2.Year` (Day is smaller than Year)
-   
-2. **Ordinal Limits**: The `Scope` defines a maximum allowable ordinal value for its `Unit`.  
-   (This is a soft limit and may not accurately represent the true total for a Unit in each scope. More details on that later.)
-   - Valid: `Year.365.Day` (A year has up to 366 days)
-   - Invalid: `Year.999.Day` (Exceeds the number of days in a year)
-   
-3. **Negative Indexing**: Negative indices are allowed, where `-1` represents the "last" instance, `-2` the second-to-last, and so on.
-   - Example: `Year.-1.Month` refers to the last month of the year.
-
-## Chaining Intervals
-
-Intervals can be chained together to define more specific time ranges. Each chain creates a finer level of granularity.
-
-### Example
-
-```
-[Year.3.Month, Month.4.Day]
-```
-
-This chain represents the 5th day of the 4th month of a year.
-
-### Chaining Rules
-
-1. **Scope-Unit Matching**: For each interval in the chain (after the first), the `Scope` must match the previous interval's `Unit`.
-   - Valid: `[Year.3.Month, Month.4.Day]`
-   - Invalid: `[Year.3.Month, Week.4.Day]` (Week does not match the prior unit of Month)
-   
-2. **Arbitrary Length Chains**: Chains can be as long as needed to describe increasingly granular intervals.
-
-### Example Chain
-
-```
-[Year.2.Month, Month.3.Week, Week.4.Day, Day.-2.Hour, Hour.2.Minute, Minute.5.Second]
-```
-
-This chain specifies:
-- The 6th second 
-- Of the 3rd minute
-- Of the 2nd-last hour
-- Of the 5th day
-- Of the 4th week
-- Of the 3rd month
-- Of the year.
-
-## Pythonic Expression of Chains
-
-In this implementation, chains are simplified to reduce redundancy. The chaining follows a structure like:
-
-```python
-from pyintervals import Expression
-
-Expression().year.month[2].week[3].day[4].hour[5].minute[2].second[5]
-```
-
-The scope starts the chain, followed by the unit in dot notation and `[ordinal]` in bracket notation. After the initial scope (year, in this case), the syntax combines Unit and Scope concepts intuitively. Users do not need to type the month twice to represent `[Year.2.Month, Month.3.Week]`; simply `year.month[2].week[3]` suffices.
-
-### Example Usage
-
-By default, invalid expressions like the following are possible:
-
-```python
->>> feb_30 = Expression(root_datetime=datetime.datetime(2024,1,1)).year.month[1].day[29]
->>> feb_30()
-datetime.datetime(2024, 3, 1, 0, 0)
-```
-
-The result works because days automatically rollover. To prevent this behavior, pass `rollover=False`:
-
-```python
->>> feb_30 = Expression(root_datetime=datetime.datetime(2024,1,1)).year.month[1].day[29]
->>> feb_30(rollover=False)
----------------------------------------------------------------------------
-ValueError                                Traceback (most recent call last)
-...
-ValueError: day is out of range for month
-```
-
-Note: A simple way to get the last day of the month is to use negative indexing.
-
-## Handling Variability in Unit Intervals
-
-`Unit.max_intervals` represents the "total number of intervals that could ever possibly occur in this time frame." It’s used for validation during the lazy building of an expression. Once an expression is called, it is validated completely.
-
-Negative indexing works by dynamically adding and then subtracting the negative index. For example, `Month.-5.Day` would evaluate by adding a month to the date and then subtracting days.
-
-### Simple Use Cases
-
-```python
-# Slices the datetime object to specified granularity
->>> Expression().year(datetime.datetime(2024,12,23,5,35,53,29485))
-datetime.datetime(2024, 1, 1, 0, 0)
-
->>> Expression().second(datetime.datetime(2024,12,23,5,35,53,29485))
-datetime.datetime(2024, 12, 23, 5, 35, 53)
-```
 
 ---
 
-### Examples with `pyinterval`
+# Relative Dates Library
 
-The following examples demonstrate how to use the `pyinterval` library to work with date and time expressions:
+This Python library provides intuitive methods for interacting with relative dates, using a custom protocol to describe points in time and intervals with high precision. It supports chaining of date intervals and allows easy manipulation and querying of specific time units.
+
+## Features
+
+- **Flexible Interval Expressions**: Define time intervals by accessing properties of the Expression object and indexing them.
+- **Granularity Control**: Break down time into smaller units (microseconds to decades) and chain them together for greater precision.
+- **Negative Indexing**: Support for negative indices to easily access "last" instances of time units (e.g., the last day of the month).
+- **Rollover Handling**: Control whether units roll over into the next larger unit, or strictly validate intervals.
+- **More Timedeltas**: Provides a proxy for several more units of time, such as centisecond, decisecond, and decade.
+- **Lazy Evaluation**: Datetime objects can be passed after the relative time object has been defined, evaluating the the precise time relative to the passed datetime.
+- **Lazy Chain Validation**: Rough validation is provided during chaining and indexing, but it is not garunteed until evaluation occurs.
+
+---
+
+### Interval Expression Rules
+
+You can chain intervals together to describe increasingly granular time ranges. For example:
+
+```python
+exp = Expression().year.month[2].day[4]
+```
+
+Noting that index is 0-based, this represents the 5th day of the 3rd month of the year. When chaining intervals, it lways follows this scheme:
+
+   `Root().root_scope.unit_scope[index]`
+
+with an arbitrary number of `.unit_scope[index]` in the chain. In the above example, `Expression()` is the Root, while `year` is the root_scope and `month` and `day` are both unit_scopes. 
+
+The Root (`Expression()`) can be defined with or without a datetime object as the first argument. Doing so supplies that datetime as a default when evaluating for relative times, meaning a time doesn't need to be passed at evaluation time. If you want to override the default or simply use an expression dynamically, pass a datetime object during evaluation as the only argument.
+
+The root_scope defines the scope of your interval chain. As such, it can not be indexed. Only units of the scope can be indexed. You can, however, call the root_scope with the `n` kwarg (e.g., `Expression().quarter(n=1)`) to generate a timedelta.
+
+The unit_scope divides its parent, the scope. It's called the unit_scope because it, too, can technically be a scope (just not the root_scope). When a unit's property of a smaller unit is accessed, it becomes the immediate scope of that smaller unit. In the above example, that's to say month is the scope of day but still the unit of year. The unit_scope is indexable (0-based, including nagative) to specify its index within its parent.
+
+Passing any date returns a datetime object
+```python
+# Returns second month, fourth day of this year as datetime.
+exp(datetime.datetime.now())
+```
+
+Negative indexing also works to collect the nth last unit of an interval. For example, the last day of a month:
+```python
+exp = Expression().month.day[-1]
+```
+
+## Rollover and Validations
+
+By default, invalid dates roll over to the next valid date. For example:
+
+```python
+exp = Expression().year.month[1].day[29]
+feb_30 = exp(datetime.datetime(2024, 1, 1))
+print(feb_30)  # 2024-03-01 00:00:00
+```
+
+To disable this behavior, pass `rollover=False`:
+
+```python
+feb_30 = exp(datetime.datetime(2024, 1, 1), rollover=False)
+# Raises: ValueError: day is out of range for month
+```
+
+### Handling Variability in Unit Intervals
+
+`Unit.max_intervals` defines the total possible intervals for a unit within its scope. This helps ensure index validation during expression building, but it isn't preceise. Due to the dynamic nature of these intervals, hard validation only occurs at evaluation time. Max intervals should roughly define the maximum number of child units possible for each child unit within a unit. While building an expression chain, the class will make sure you dont exceed these values.
+
+### Example Usages
 
 #### Setup
 
 ```python
-from pyinterval import Expression
+from pyintervals import Expression
 import datetime
 
-# Create an Expression instance
 exp = Expression()
 dt = datetime.datetime(2024, 12, 30, 12, 40, 35, 500000)
 ```
 
 #### Extracting Components
 
-- **Year of a Date**
+```python
+# Get the year start date
+print(exp.year(dt))  # 2024-01-01 00:00:00
 
-  ```python
-  print(exp.year(dt))
-  
-  2024-01-01 00:00:00
-  ```
+# Last week, 5th day of 2nd month
+print(exp.year.month[1].week[-1].day[4](dt))  # 2024-02-27 00:00:00
 
-- **Last week, fifth day of second month**
+# 5th weekday in the current week
+print(exp.week.day[4](dt))  # 2025-01-03 00:00:00
 
-  ```python
-  print(exp.year.month[1].week[-1].day[4](dt))
-  
-  2024-02-27 00:00:00
-  ```
+# 4th week's 5th day in the last month of the quarter
+print(exp.quarter.month[-1].week[3].day[4](dt))  # 2024-10-26 00:00:00
+```
 
-- **Fifth Weekday in the Current Week**
+#### More Examples
 
-  ```python
-  print(exp.week.day[4](dt))
-  
-  2025-01-03 00:00:00
-  ```
+```
+today = someday = datetime.datetime.now()
 
-- **Fourth Week's Fifth Day in the Last Month of the Quarter**
+# Get the current week, Monday 
+this_monday_exp = Expression(today).week.day[0]
+this_monday_exp()
 
-  ```python
-  print(exp.quarter.month[-1].week[3].day[4](dt))
-  
-  2024-10-26 00:00:00
-  ```
+# Get a weekday dynamically
+exp = Expression()
+some_monday_exp = exp.week.day[0]
+some_monday = some_monday_exp(someday)
 
-#### Handling Non-Existent Dates
+# Add some time
+some_monday + exp.decade(n=1)
 
-- **February 30th**
+# Subtract some time
+some_monday - exp.centisecond(n=20)
 
-  ```python
-  >>> # Reference to February 30th
-  >>> feb_30th = exp.year.month[1].day[29]
-  >>> print(feb_30th)
-  
-  Year > Month[2] > Day[30]
+# Get more granular
+more_granular_exp = exp.day.hour[-4].second[573].millisecond[-12].microsecond[5]
+more_granular_time = more_granular_exp(some_monday)
+```
 
-  >>> # With rollover=True (default)
-  >>> print(feb_30th(dt))
-  
-  2024-03-01 00:00:00
-
-  >>> # With rollover=False
-  >>> print(feb_30th(dt, rollover=False))
-  
-  ---------------------------------------------------------------------------
-  ValueError                                Traceback (most recent call last)
-  Cell In[112], line 335, in Expression._apply_intervals_without_rollover(self, _datetime)
-      334 try:
-  --> 335     return datetime.datetime(**adjustments)
-      336 except ValueError as e:
-  
-  ValueError: day is out of range for month
-  ```
+---
 
 ## Roadmap
 
-- Implement smart indexing `[star:stop:step]` to define time ranges. When called, return a list of datetime objects falling within the range, at the granularity specified by the expression.
-- Implement `expression.verify(datetime) -> Bool` to determine if a datetime lands within the refined range (with advanced indexing) or exactly matches the interval (up to the interval's defined granularity).
-- Implement compatibility with `timedelta` for arithmetic on Expression chains (e.g., chain - timedelta(days=1)). Store it somewhere, on Root? Allow it to be specified on initialization.
-- Add a built-in way to dynamically build chains, instead of users trying `Expression.getattr()`.
-- Allow chains to be joined with the `+` operator (requiring that the child-most unit matches the scope of the next expression) or broken with the `-` operator (using the child-most unit of the next expression as the breakpoint).
+- **Smart Indexing**: Implement slicing (`[start:stop:step]`) to generate date ranges at specified granularity.
+- **Validation**: Add `expression.verify(datetime) -> bool` to check if a datetime matches the expression or falls within the specified range.
+- **Timedelta Compatibility**: Allow arithmetic with `timedelta` objects on expression chains (e.g., `chain - timedelta(days=1)`).
+- **Dynamic Chain Building**: Provide built-in methods to dynamically create chains, reducing manual effort for constructing expressions.
+- **Chain Operators**: Support chaining with the `+` operator and breaking chains with the `-` operator.
+
+---
+
+This library is still in its **alpha stage**. Contributions and feedback are welcome.
+
+--- 
