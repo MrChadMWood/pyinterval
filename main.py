@@ -5,191 +5,328 @@ import datetime
 class Unit:
     """
     Base class for time units. Subclasses represent units of time.
-    This class is not intended to be interacted with directly, nor its subclasses.
-    Rather, the Expression class offers a proxy to each subclass. This is the intended entrypoint.
-    The Expression class provides abstraction via property and bracket indexing.
-
-    Args:
-        enum (int): Unit identifier. Used to compare position in hierarchy.
-        name (str): Name of the unit. Used as an id and for __repr__.
-        relativedelta_kwarg (str): Keyword for relativedelta. Used for calculating timedelta.
-        datetime_kwarg (str): Keyword for datetime operations. Used for compiling datetime objects.
-        max_intervals (dict): Max intervals for child units. Used for weak validation.
+    The `meta` dictionary defines the parameters for each subclass.
     """
-    def __init__(self, enum, name, relativedelta_kwarg, datetime_kwarg, max_intervals):
-        self.enum = enum
-        self.name = name
-        self.relativedelta_kwarg = relativedelta_kwarg
-        self.datetime_kwarg = datetime_kwarg
-        self.max_intervals = max_intervals or {}
+
+    meta = {
+        'enum': None,
+        'name': None,
+        'relativedelta_kwarg': None,
+        'relativedelta_multiplier': 1,
+        'datetime_kwarg': None,
+        'parent_class': None,
+        'max_intervals': None
+    }
+
+    def __init__(self):
+        self.enum = self.meta['enum']
+        self.name = self.meta['name']
+        self.relativedelta_kwarg = self.meta['relativedelta_kwarg']
+        self.relativedelta_multiplier = self.meta['relativedelta_multiplier']
+        self.datetime_kwarg = self.meta['datetime_kwarg']
+        self.max_intervals = self.meta['max_intervals']
 
     def get_max_index(self, child_unit):
         """Get max index for a child unit."""
         return self.max_intervals.get(child_unit)
 
-    def reset_scope(self, date):
-        """Remove any time after granularity of self. To be implemented by subclasses"""
-        raise NotImplementedError
-
-    def delta(self, value = 1):
+    def delta(self, value=1):
         """Create a relativedelta."""
-        delta_kwargs = {self.relativedelta_kwarg: value}
+        delta_kwargs = {self.relativedelta_kwarg: value * self.relativedelta_multiplier}
         return relativedelta(**delta_kwargs)
 
+    def reset_scope(self, date, replace_kwargs=None):
+        """Reset time data based on granularity of the unit."""
+        replace_kwargs = replace_kwargs or {}
+        return date.replace(**replace_kwargs)
+
+
+# Define the units with specific meta data
 class Microsecond(Unit):
-    ENUM = 0
-    NAME = 'Microsecond'
-    RELATIVEDELTA_KWARG = 'microseconds'
-    DATETIME_KWARG = 'microsecond'
-    MAX_INTERVALS = {}
-    def __init__(self):
-        super().__init__(self.ENUM, self.NAME, self.RELATIVEDELTA_KWARG, self.DATETIME_KWARG, self.MAX_INTERVALS)
+    meta = {
+        'enum': 0,
+        'name': 'Microsecond',
+        'relativedelta_kwarg': 'microseconds',
+        'relativedelta_multiplier': 1,
+        'datetime_kwarg': 'microsecond',
+        'parent_class': None,
+        'max_intervals': {}
+    }
 
     def reset_scope(self, date):
-        return date.replace(microsecond=0)
+        return super().reset_scope(date, {'microsecond': 0})
+
+
+class Millisecond(Unit):
+    meta = {
+        'enum': 0.1,
+        'name': 'Millisecond',
+        'relativedelta_kwarg': 'milliseconds',
+        'relativedelta_multiplier': 1000,
+        'datetime_kwarg': 'microsecond',
+        'parent_class': Microsecond,
+        'max_intervals': {Microsecond.meta['name']: 1000}
+    }
+
+    def reset_scope(self, date):
+        return super().reset_scope(date, {'microsecond': (date.microsecond // self.relativedelta_multiplier) * self.relativedelta_multiplier})
+
+
+class Centisecond(Unit):
+    meta = {
+        'enum': 0.2,
+        'name': 'Centisecond',
+        'relativedelta_kwarg': 'milliseconds',
+        'relativedelta_multiplier': 10000,
+        'datetime_kwarg': 'microsecond',
+        'parent_class': Millisecond,
+        'max_intervals': {
+            Microsecond.meta['name']: 10000, 
+            Millisecond.meta['name']: 10
+        }
+    }
+
+    def reset_scope(self, date):
+        return super().reset_scope(date, {'microsecond': (date.microsecond // self.relativedelta_multiplier) * self.relativedelta_multiplier})
+
+
+class Decisecond(Unit):
+    meta = {
+        'enum': 0.3,
+        'name': 'Decisecond',
+        'relativedelta_kwarg': 'milliseconds',
+        'relativedelta_multiplier': 100000,
+        'datetime_kwarg': 'microsecond',
+        'parent_class': Centisecond,
+        'max_intervals': {
+            Microsecond.meta['name']: 100000, 
+            Millisecond.meta['name']: 100, 
+            Centisecond.meta['name']: 10
+        }
+    }
+
+    def reset_scope(self, date):
+        return super().reset_scope(date, {'microsecond': (date.microsecond // self.relativedelta_multiplier) * self.relativedelta_multiplier})
+
 
 class Second(Unit):
-    ENUM = 1
-    NAME = 'Second'
-    RELATIVEDELTA_KWARG = 'seconds'
-    DATETIME_KWARG = 'second'
-    MAX_INTERVALS = {Microsecond: 1000000}
-    def __init__(self):
-        super().__init__(self.ENUM, self.NAME, self.RELATIVEDELTA_KWARG, self.DATETIME_KWARG, self.MAX_INTERVALS)
+    meta = {
+        'enum': 1,
+        'name': 'Second',
+        'relativedelta_kwarg': 'seconds',
+        'relativedelta_multiplier': 1,
+        'datetime_kwarg': 'second',
+        'parent_class': Decisecond,
+        'max_intervals': {
+            Microsecond.meta['name']: 1000000,
+            Millisecond.meta['name']: 1000,
+            Centisecond.meta['name']: 100,
+            Decisecond.meta['name']: 10
+        }
+    }
 
     def reset_scope(self, date):
-        return date.replace(microsecond=0)
+        return super().reset_scope(date, {'microsecond': 0})
+
 
 class Minute(Unit):
-    ENUM = 2
-    NAME = 'Minute'
-    RELATIVEDELTA_KWARG = 'minutes'
-    DATETIME_KWARG = 'minute'
-    MAX_INTERVALS = {
-        Microsecond.NAME: 60000000, 
-        Second.NAME: 60
+    meta = {
+        'enum': 2,
+        'name': 'Minute',
+        'relativedelta_kwarg': 'minutes',
+        'relativedelta_multiplier': 1,
+        'datetime_kwarg': 'minute',
+        'parent_class': Second,
+        'max_intervals': {
+            Microsecond.meta['name']: 60000000,
+            Millisecond.meta['name']: 60000,
+            Centisecond.meta['name']: 6000,
+            Decisecond.meta['name']: 600,
+            Second.meta['name']: 60
+        }
     }
-    def __init__(self):
-        super().__init__(self.ENUM, self.NAME, self.RELATIVEDELTA_KWARG, self.DATETIME_KWARG, self.MAX_INTERVALS)
 
     def reset_scope(self, date):
-        return date.replace(second=0, microsecond=0)
+        return super().reset_scope(date, {'second': 0, 'microsecond': 0})
+
 
 class Hour(Unit):
-    ENUM = 3
-    NAME = 'Hour'
-    RELATIVEDELTA_KWARG = 'hours'
-    DATETIME_KWARG = 'hour'
-    MAX_INTERVALS = {
-        Microsecond.NAME: 3600000000, 
-        Second.NAME: 3600, 
-        Minute.NAME: 60
+    meta = {
+        'enum': 3,
+        'name': 'Hour',
+        'relativedelta_kwarg': 'hours',
+        'relativedelta_multiplier': 1,
+        'datetime_kwarg': 'hour',
+        'parent_class': Minute,
+        'max_intervals': {
+            Microsecond.meta['name']: 3600000000,
+            Millisecond.meta['name']: 3600000,
+            Centisecond.meta['name']: 360000,
+            Decisecond.meta['name']: 36000,
+            Second.meta['name']: 3600,
+            Minute.meta['name']: 60
+        }
     }
-    def __init__(self):
-        super().__init__(self.ENUM, self.NAME, self.RELATIVEDELTA_KWARG, self.DATETIME_KWARG, self.MAX_INTERVALS)
 
     def reset_scope(self, date):
-        return date.replace(minute=0, second=0, microsecond=0)
+        return super().reset_scope(date, {'minute': 0, 'second': 0, 'microsecond': 0})
+
 
 class Day(Unit):
-    ENUM = 4
-    NAME = 'Day'
-    RELATIVEDELTA_KWARG = 'days'
-    DATETIME_KWARG = 'day'
-    MAX_INTERVALS = {
-        Microsecond.NAME: 86400000000, 
-        Second.NAME: 86400, 
-        Minute.NAME: 1440, 
-        Hour.NAME: 24
+    meta = {
+        'enum': 4,
+        'name': 'Day',
+        'relativedelta_kwarg': 'days',
+        'relativedelta_multiplier': 1,
+        'datetime_kwarg': 'day',
+        'parent_class': Hour,
+        'max_intervals': {
+            Microsecond.meta['name']: 86400000000,
+            Millisecond.meta['name']: 86400000,
+            Centisecond.meta['name']: 8640000,
+            Decisecond.meta['name']: 864000,
+            Second.meta['name']: 86400,
+            Minute.meta['name']: 1440,
+            Hour.meta['name']: 24
+        }
     }
-    def __init__(self):
-        super().__init__(self.ENUM, self.NAME, self.RELATIVEDELTA_KWARG, self.DATETIME_KWARG, self.MAX_INTERVALS)
 
     def reset_scope(self, date):
-        return date.replace(hour=0, minute=0, second=0, microsecond=0)
+        return super().reset_scope(date, {'hour': 0, 'minute': 0, 'second': 0, 'microsecond': 0})
+
 
 class Week(Unit):
-    ENUM = 5
-    NAME = 'Week'
-    RELATIVEDELTA_KWARG = 'weeks'
-    DATETIME_KWARG = 'day'
-    MAX_INTERVALS = {
-        Microsecond.NAME: 604800000000, 
-        Second.NAME: 604800, 
-        Minute.NAME: 10080, 
-        Hour.NAME: 168, 
-        Day.NAME: 7
+    meta = {
+        'enum': 5,
+        'name': 'Week',
+        'relativedelta_kwarg': 'weeks',
+        'relativedelta_multiplier': 1,
+        'datetime_kwarg': 'day',
+        'parent_class': Day,
+        'max_intervals': {
+            Microsecond.meta['name']: 604800000000,
+            Millisecond.meta['name']: 604800000,
+            Centisecond.meta['name']: 60480000,
+            Decisecond.meta['name']: 6048000,
+            Second.meta['name']: 604800,
+            Minute.meta['name']: 10080,
+            Hour.meta['name']: 168,
+            Day.meta['name']: 7
+        }
     }
-    def __init__(self):
-        super().__init__(self.ENUM, self.NAME, self.RELATIVEDELTA_KWARG, self.DATETIME_KWARG, self.MAX_INTERVALS)
 
     def reset_scope(self, date):
-        # Reset to the start of the week (weekday=0 represents Monday)
-        # Consider updating to allow different days of week
+        # Reset to the start of the week (Monday)
         start_of_week = date - datetime.timedelta(days=date.weekday())
-        return start_of_week.replace(hour=0, minute=0, second=0, microsecond=0)
+        return super().reset_scope(start_of_week, {'hour': 0, 'minute': 0, 'second': 0, 'microsecond': 0})
+
 
 class Month(Unit):
-    ENUM = 6
-    NAME = 'Month'
-    RELATIVEDELTA_KWARG = 'months'
-    DATETIME_KWARG = 'month'
-    MAX_INTERVALS = {
-        Microsecond.NAME: 2678400000000, 
-        Second.NAME: 2592000, 
-        Minute.NAME: 43200, 
-        Hour.NAME: 720, 
-        Day.NAME: 31, 
-        Week.NAME: 5
+    meta = {
+        'enum': 6,
+        'name': 'Month',
+        'relativedelta_kwarg': 'months',
+        'relativedelta_multiplier': 1,
+        'datetime_kwarg': 'month',
+        'parent_class': Week,
+        'max_intervals': {
+            Microsecond.meta['name']: 3024000000000,
+            Millisecond.meta['name']: 3024000000,
+            Centisecond.meta['name']: 302400000,
+            Decisecond.meta['name']: 30240000,
+            Second.meta['name']: 3024000,
+            Minute.meta['name']: 50400,
+            Hour.meta['name']: 840,
+            Day.meta['name']: 35,
+            Week.meta['name']: 5
+        }
     }
-    def __init__(self):
-        super().__init__(self.ENUM, self.NAME, self.RELATIVEDELTA_KWARG, self.DATETIME_KWARG, self.MAX_INTERVALS)
 
     def reset_scope(self, date):
-        return date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        return super().reset_scope(date, {'day': 1, 'hour': 0, 'minute': 0, 'second': 0, 'microsecond': 0})
+
 
 class Quarter(Unit):
-    ENUM = 7
-    NAME = 'Quarter'
-    RELATIVEDELTA_KWARG = 'months'
-    DATETIME_KWARG = 'month'
-    MAX_INTERVALS = {
-        Microsecond.NAME: 7776000000000, 
-        Second.NAME: 7776000, 
-        Minute.NAME: 129600, 
-        Hour.NAME: 2160, 
-        Day.NAME: 90, 
-        Week.NAME: 14, 
-        Month.NAME: 3
+    meta = {
+        'enum': 7,
+        'name': 'Quarter',
+        'relativedelta_kwarg': 'months',
+        'relativedelta_multiplier': 3,
+        'datetime_kwarg': 'month',
+        'parent_class': Month,
+        'max_intervals': {
+            Microsecond.meta['name']: 8467200000000,
+            Millisecond.meta['name']: 8467200000,
+            Centisecond.meta['name']: 846720000,
+            Decisecond.meta['name']: 84672000,
+            Second.meta['name']: 8467200,
+            Minute.meta['name']: 141120,
+            Hour.meta['name']: 2352,
+            Day.meta['name']: 98,
+            Week.meta['name']: 14,
+            Month.meta['name']: 3
+        }
     }
-    def __init__(self):
-        super().__init__(self.ENUM, self.NAME, self.RELATIVEDELTA_KWARG, self.DATETIME_KWARG, self.MAX_INTERVALS)
 
     def reset_scope(self, date):
-        start_month = 3 * ((date.month - 1) // 3) + 1
-        return date.replace(month=start_month, day=1, hour=0, minute=0, second=0, microsecond=0)
+        start_month = self.relativedelta_multiplier * ((date.month - 1) // self.relativedelta_multiplier) + 1
+        return super().reset_scope(date, {'month': start_month, 'day': 1, 'hour': 0, 'minute': 0, 'second': 0, 'microsecond': 0})
+
 
 class Year(Unit):
-    ENUM = 8
-    NAME = 'Year'
-    RELATIVEDELTA_KWARG = 'years'
-    DATETIME_KWARG = 'year'
-    MAX_INTERVALS = {
-        Microsecond.NAME: 31622400000000, 
-        Second.NAME: 31536000, 
-        Minute.NAME: 525600, 
-        Hour.NAME: 8760, 
-        Day.NAME: 366, 
-        Week.NAME: 52, 
-        Month.NAME: 12,
-        Quarter.NAME: 4
+    meta = {
+        'enum': 8,
+        'name': 'Year',
+        'relativedelta_kwarg': 'years',
+        'relativedelta_multiplier': 1,
+        'datetime_kwarg': 'year',
+        'parent_class': Quarter,
+        'max_intervals': {
+            Microsecond.meta['name']: 32054400000000,
+            Millisecond.meta['name']: 32054400000,
+            Centisecond.meta['name']: 3205440000,
+            Decisecond.meta['name']: 320544000,
+            Second.meta['name']: 32054400,
+            Minute.meta['name']: 534240,
+            Hour.meta['name']: 8904,
+            Day.meta['name']: 366,
+            Week.meta['name']: 53,
+            Month.meta['name']: 12,
+            Quarter.meta['name']: 4
+        }
     }
-    def __init__(self):
-        super().__init__(self.ENUM, self.NAME, self.RELATIVEDELTA_KWARG, self.DATETIME_KWARG, self.MAX_INTERVALS)
 
     def reset_scope(self, date):
-        return date.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+        return super().reset_scope(date, {'month': 1, 'day': 1, 'hour': 0, 'minute': 0, 'second': 0, 'microsecond': 0})
 
+
+class Decade(Unit):
+    meta = {
+        'enum': 9,
+        'name': 'Decade',
+        'relativedelta_kwarg': 'years',
+        'relativedelta_multiplier': 10,
+        'datetime_kwarg': 'year',
+        'parent_class': Year,
+        'max_intervals': {
+            Microsecond.meta['name']: 320544000000000,
+            Millisecond.meta['name']: 320544000000,
+            Centisecond.meta['name']: 32054400000,
+            Decisecond.meta['name']: 3205440000,
+            Second.meta['name']: 320544000,
+            Minute.meta['name']: 5342400,
+            Hour.meta['name']: 89040,
+            Day.meta['name']: 3710,
+            Week.meta['name']: 530,
+            Month.meta['name']: 120,
+            Quarter.meta['name']: 40,
+            Year.meta['name']: 10 
+        }
+    }
+
+    def reset_scope(self, date):
+        start_year = (date.year // self.relativedelta_multiplier) * self.relativedelta_multiplier
+        return super().reset_scope(date, {'year': start_year, 'month': 1, 'day': 1, 'hour': 0, 'minute': 0, 'second': 0, 'microsecond': 0})
 
 # Expression class to handle chaining and managing units
 class Expression:
@@ -371,6 +508,11 @@ class Expression:
         return ' > '.join(reversed(parts))
 
     @property
+    def decade(self):
+        self.validate_scheme()
+        return Expression(unit=Decade(), parent=self)
+
+    @property
     def year(self):
         self.validate_scheme()
         return Expression(unit=Year(), parent=self)
@@ -409,3 +551,24 @@ class Expression:
     def second(self):
         self.validate_scheme()
         return Expression(unit=Second(), parent=self)
+
+    @property
+    def decisecond(self):
+        self.validate_scheme()
+        return Expression(unit=Decisecond(), parent=self)
+
+    @property
+    def cenisecond(self):
+        self.validate_scheme()
+        return Expression(unit=Cenisecond(), parent=self)
+
+    @property
+    def millisecond(self):
+        self.validate_scheme()
+        return Expression(unit=Millisecond(), parent=self)
+
+    @property
+    def microsecond(self):
+        self.validate_scheme()
+        return Expression(unit=Microsecond(), parent=self)
+        
