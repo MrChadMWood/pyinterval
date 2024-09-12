@@ -269,15 +269,24 @@ class Expression:
             scope = scope.parent
         return scope
 
-    def __call__(self, datetime=None, rollover=True):
-        """Apply the expression to a date. Rollover controls whether to allow excess time to increment parent units."""
-        datetime = datetime or self.get_root().datetime
-        if not datetime:
-            raise ValueError('A datetime object is required.')
+    def __call__(self, datetime=None, n=None, rollover=True):
+        """Apply the expression to a date. Rollover controls whether to allow excess time to increment parent units.
+        If called on a scope with n, it generates a timedelta with value=n matching the scope.
+        """
         
-        if self.is_scope: # When generating a relativedelta
-            raise NotImplementedError('Initializing scopes for timedeltas is upcoming.')
-        else: # When evaluating relative expressions
+        datetime = datetime if datetime is not None else self.get_root().datetime
+
+        if not datetime and not self.is_scope:
+            # Requires a datetime when evaluating a relative expression
+            raise ValueError('A datetime object is required when evaluating an expression.')
+        elif n is None and isinstance(datetime, int):
+            # Catches accidental use of n as a positional, inadvertently assigning to datetime.
+            raise ValueError('The `n` kwarg is required when generating a timedelta.')
+        elif n is not None and self.is_scope:
+            # When generating a relativedelta
+            return self.unit.delta(n)
+        else:
+            # When evaluating relative expressions
             datetime = self._reset_to_scope(datetime)
             if rollover:
                 datetime = self._apply_intervals_with_rollover(datetime)
