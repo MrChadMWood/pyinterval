@@ -278,7 +278,7 @@ class Expression:
         if self.is_scope: # When generating a relativedelta
             raise NotImplementedError('Initializing scopes for timedeltas is upcoming.')
         else: # When evaluating relative expressions
-            datetime = self._reset_to_scope(dadatetimee)
+            datetime = self._reset_to_scope(datetime)
             if rollover:
                 datetime = self._apply_intervals_with_rollover(datetime)
             else:
