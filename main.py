@@ -4,15 +4,17 @@ import datetime
 
 class Unit:
     """
-    Base class for time units.
-    Subclasses represent units of time.
+    Base class for time units. Subclasses represent units of time.
+    This class is not intended to be interacted with directly, nor its subclasses.
+    Rather, the Expression class offers a proxy to each subclass. This is the intended entrypoint.
+    The Expression class provides abstraction via property and bracket indexing.
 
     Args:
-        enum (int): Unit identifier.
-        name (str): Name of the unit.
-        relativedelta_kwarg (str): Keyword for relativedelta.
-        datetime_kwarg (str): Keyword for datetime operations.
-        max_intervals (dict): Max intervals for child units.
+        enum (int): Unit identifier. Used to compare position in hierarchy.
+        name (str): Name of the unit. Used as an id and for __repr__.
+        relativedelta_kwarg (str): Keyword for relativedelta. Used for calculating timedelta.
+        datetime_kwarg (str): Keyword for datetime operations. Used for compiling datetime objects.
+        max_intervals (dict): Max intervals for child units. Used for weak validation.
     """
     def __init__(self, enum, name, relativedelta_kwarg, datetime_kwarg, max_intervals):
         self.enum = enum
@@ -26,7 +28,7 @@ class Unit:
         return self.max_intervals.get(child_unit)
 
     def reset_scope(self, date):
-        """Reset date to the start of scope. To be implemented by subclasses"""
+        """Remove any time after granularity of self. To be implemented by subclasses"""
         raise NotImplementedError
 
     def delta(self, value = 1):
@@ -194,11 +196,18 @@ class Expression:
     """
     Chain and manage units.
 
+    Example usage:
+        exp = Expression()
+        
+        # Get the current week, Monday 
+        this_monday = exp(today).week.day[0]
+
     Args:
-        root_datetime (datetime.datetime): Initial datetime.
-            Optional. Required if not supplied when the expression is evaluated.
-        unit (Unit): Time unit. Handled automatically, not passed by user.
-        parent (Expression): Parent expression. Handled automatically, not passed by user.
+        Optional. Required if datetime not supplied when the expression is evaluated.
+            root_datetime (datetime.datetime): Initial datetime.
+        Handled automatically, not passed by user.
+            unit (Unit): The Unit in this part of the expression
+            parent (Expression): The parent unit of this part of the expression
     """
     def __init__(self, root_datetime=None, unit=None, parent=None):
         is_scope = False
@@ -260,23 +269,26 @@ class Expression:
             scope = scope.parent
         return scope
 
-    def __call__(self, date=None, rollover=True):
+    def __call__(self, datetime=None, rollover=True):
         """Apply the expression to a date. Rollover controls whether to allow excess time to increment parent units."""
-        date = date or self.get_root().datetime
-        if not date:
+        datetime = datetime or self.get_root().datetime
+        if not datetime:
             raise ValueError('A datetime object is required.')
-            
-        date = self._reset_to_scope(date)
-        if rollover:
-            date = self._apply_intervals_with_rollover(date)
-        else:
-            date = self._apply_intervals_without_rollover(date)
-        return date
+        
+        if self.is_scope: # When generating a relativedelta
+            raise NotImplementedError('Initializing scopes for timedeltas is upcoming.')
+        else: # When evaluating relative expressions
+            datetime = self._reset_to_scope(dadatetimee)
+            if rollover:
+                datetime = self._apply_intervals_with_rollover(datetime)
+            else:
+                datetime = self._apply_intervals_without_rollover(datetime)
+        return datetime
 
-    def _reset_to_scope(self, date):
-        """Reset date to scope start."""
+    def _reset_to_scope(self, datetime):
+        """Set time data in datetime to 0, up to scope of expression."""
         current_scope = self.get_scope()
-        return current_scope.unit.reset_scope(date)
+        return current_scope.unit.reset_scope(datetime)
 
     def _apply_intervals_with_rollover(self, datetime):
         """Apply all intervals (year, quarter, month, etc.) recursively with default rollover behavior."""
