@@ -61,7 +61,7 @@ class Millisecond(Unit):
     meta = {
         'enum': 0.1,
         'name': 'Millisecond',
-        'relativedelta_kwarg': 'milliseconds',
+        'relativedelta_kwarg': 'microseconds',
         'relativedelta_multiplier': 1000,
         'datetime_kwarg': 'microsecond',
         'parent_class': Microsecond,
@@ -76,7 +76,7 @@ class Centisecond(Unit):
     meta = {
         'enum': 0.2,
         'name': 'Centisecond',
-        'relativedelta_kwarg': 'milliseconds',
+        'relativedelta_kwarg': 'microseconds',
         'relativedelta_multiplier': 10000,
         'datetime_kwarg': 'microsecond',
         'parent_class': Millisecond,
@@ -334,10 +334,28 @@ class Expression:
     Chain and manage units.
 
     Example usage:
-        exp = Expression()
+        ```
+        today = someday = datetime.datetime.now()
         
         # Get the current week, Monday 
-        this_monday = exp(today).week.day[0]
+        this_monday_exp = Expression(today).week.day[0]
+        this_monday_exp()
+        
+        # Get a weekday dynamically
+        exp = Expression()
+        some_monday_exp = exp.week.day[0]
+        some_monday = some_monday_exp(someday)
+        
+        # Add some time
+        some_monday + exp.decade(n=1)
+        
+        # Subtract some time
+        some_monday - exp.centisecond(n=20)
+        
+        # Get more granular
+        more_granular_exp = exp.day.hour[-4].second[573].millisecond[-12].microsecond[5]
+        more_granular_time = more_granular_exp(some_monday)
+        ```
 
     Args:
         Optional. Required if datetime not supplied when the expression is evaluated.
@@ -558,9 +576,9 @@ class Expression:
         return Expression(unit=Decisecond(), parent=self)
 
     @property
-    def cenisecond(self):
+    def centisecond(self):
         self.validate_scheme()
-        return Expression(unit=Cenisecond(), parent=self)
+        return Expression(unit=Centisecond(), parent=self)
 
     @property
     def millisecond(self):
