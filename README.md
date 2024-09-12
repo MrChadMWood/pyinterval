@@ -1,3 +1,6 @@
+---
+
+This library is still in its **alpha stage**. Contributions and feedback are welcome.
 
 ---
 
@@ -35,7 +38,7 @@ The Root (`Expression()`) can be defined with or without a datetime object as th
 
 The root_scope defines the scope of your interval chain. As such, it can not be indexed. Only units of the scope can be indexed. You can, however, call the root_scope with the `n` kwarg (e.g., `Expression().quarter(n=1)`) to generate a timedelta.
 
-The unit_scope divides its parent, the scope. It's called the unit_scope because it, too, can technically be a scope (just not the root_scope). When a unit's property of a smaller unit is accessed, it becomes the immediate scope of that smaller unit. In the above example, that's to say month is the scope of day but still the unit of year. The unit_scope is indexable (0-based, including nagative) to specify its index within its parent.
+The unit_scope divides its parent, the scope. It's called the unit_scope because it, too, can technically be a scope (just not the root_scope). When a unit's property of a smaller unit is accessed, it becomes the immediate scope of that smaller unit. In the above example, that's to say month is the scope of day but still the unit of year. The unit_scope is indexable (0-based, including negative) to specify its index within its parent.
 
 Passing any date returns a datetime object
 ```python
@@ -133,7 +136,3 @@ more_granular_time = more_granular_exp(some_monday)
 - **Chain Operators**: Support chaining with the `+` operator and breaking chains with the `-` operator.
 
 ---
-
-This library is still in its **alpha stage**. Contributions and feedback are welcome.
-
---- 
