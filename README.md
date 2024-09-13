@@ -17,6 +17,7 @@ This Python library provides intuitive methods for interacting with relative dat
 - **More Timedeltas**: Provides a proxy for several more units of time, such as centisecond, decisecond, and decade.
 - **Lazy Evaluation**: Datetime objects can be passed after the relative time object has been defined, evaluating the the precise time relative to the passed datetime.
 - **Lazy Chain Validation**: Rough validation is provided during chaining and indexing, but it is not garunteed until evaluation occurs.
+- **Lazy Arithmatic Evaluation**: You can add or subtract a relativedelta from an Expression. When evaluated, the Expression class performs the necessary operations on the baseline date while taking care to preserve order of operations.
 
 ---
 
@@ -128,6 +129,33 @@ Day > Hour[12]
 >>> precisely_five_milli_before = exp.second(next_weeks_last_day) - exp.millisecond.n(5)
 >>> print(precisely_five_milli_before)
 2024-09-21 23:59:59.995000
+```
+
+```
+>>> # Get current time
+>>> today = datetime.datetime.now()
+>>> print(f'{"Right now:":20}', today)
+Right now:           2024-09-13 13:15:16.882903
+
+>>> # Time of meeting, which occurs on the 12th hour of the first day of the week
+>>> this_meeting = exp.week.day[0].hour[11]
+>>> print(f'{"This Meeting:":20}', this_meeting(today))
+This Meeting:        2024-09-10 12:00:00
+
+>>> # End of meeting, which occurs at the end of the hour
+>>> end_of_this_meeting = this_meeting.minute[58].second[58]
+>>> print(f'{"End Of This Meeting:":20}', end_of_this_meeting(today))
+End Of This Meeting: 2024-09-10 12:59:59
+
+>>> # Next meeting, which occurs in 1 week less than 1 month + 30 minutes from this meeting
+>>> next_meeting = this_meeting + exp.month.n(1) + exp.minute.n(30) - exp.week.n(1)
+>>> print(f'{"Next Meeting:":20}', next_meeting(today))
+Next Meeting:        2024-10-03 12:30:00
+
+>>> # End of next meeting, which occurs at the same time
+>>> end_of_next_meeting = next_meeting.minute[58].second[58]
+>>> print(f'{"End Of Next Meeting:":20}', end_of_next_meeting(today))
+End Of Next Meeting: 2024-10-03 12:59:59
 ```
 
 ---

@@ -35,9 +35,8 @@ class Unit:
         delta_kwargs = {self.relativedelta_kwarg: value * self.relativedelta_multiplier}
         return relativedelta(**delta_kwargs)
 
-    def reset_scope(self, date, replace_kwargs=None):
+    def reset_scope(self, date, replace_kwargs):
         """Reset time data based on granularity of the unit."""
-        replace_kwargs = replace_kwargs or {}
         return date.replace(**replace_kwargs)
 
 class Microsecond(Unit):

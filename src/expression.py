@@ -1,5 +1,6 @@
 from dateutil.relativedelta import relativedelta
 import datetime
+from copy import deepcopy
 from ._units import (
     Microsecond,
     Millisecond,
@@ -49,6 +50,7 @@ class Expression:
         self.parent = __parent
         self.index = None
         self.datetime = root_datetime
+        self.delta_queue = []
 
     def __getitem__(self, index):
         """Index the expression."""
@@ -103,6 +105,49 @@ class Expression:
             raise AttributeError('Can only create timedelta from a scope.')
         return self.unit.delta(n)
 
+    def __add__(self, other):
+        """Handle addition of timedelta-like objects to create lazy expressions."""
+        if isinstance(other, relativedelta):
+            # Returns copy of itself, not performing in-place changes
+            new_expr = deepcopy(self)
+            new_expr.delta_queue.append(other)
+            return new_expr
+        elif isinstance(other, Expression):
+            raise NotImplementedError('Combining and breaking Expression chains is upcoming.')
+        else:
+            raise TypeError(f"Unsupported operand type(s) for +: 'Expression' and '{type(other).__name__}'")
+
+    def __radd__(self, other):
+        """Right-hand addition, which just calls __add__ for now, while only timedelta supported."""
+        return self.__add__(other)
+
+    def __sub__(self, other):
+        """Handle subtraction of timedelta-like objects to create lazy expressions."""
+        if isinstance(other, relativedelta):
+            # Negate the relativedelta to handle subtraction as addition of a negative
+            # Prevents need of maintaining an additional queue for seperate operation types
+            negated_delta = -other
+            new_expr = deepcopy(self)
+            new_expr.delta_queue.append(negated_delta)
+            return new_expr
+        elif isinstance(other, Expression):
+            raise NotImplementedError('Combining and breaking Expression chains is upcoming.')
+        else:
+            raise TypeError(f"Unsupported operand type(s) for -: 'Expression' and '{type(other).__name__}'")
+
+    def __rsub__(self, other):
+        """Right-hand subtraction."""
+        if isinstance(other, Expression):
+            raise NotImplementedError('Combining and breaking Expression chains is upcoming.')
+        else:
+            raise NotImplementedError('Can not subtract a relative time Expression from another object.')
+
+    def apply_deltas(self, dt):
+        """Apply all deltas in the queue to the given datetime."""
+        for delta in self.delta_queue:
+            dt += delta
+        return dt
+
     def __call__(self, dt=None, rollover=True):
         """Apply the expression to a date. Rollover controls whether to allow excess time to increment parent units."""    
         dt = dt if dt is not None else self.get_root().datetime
@@ -115,7 +160,7 @@ class Expression:
         elif not isinstance(dt, datetime.datetime):
             raise ValueError(f'datetime arg needs to be a datetime, not {type(dt)}')
             
-        dt = self._reset_to_scope(dt)
+        dt = self._reset_to_root_scope(dt)
         if rollover:
             dt = self._apply_intervals_with_rollover(dt)
         else:
@@ -123,49 +168,85 @@ class Expression:
 
         return dt
 
-    def _reset_to_scope(self, datetime):
-        """Set time data in datetime to 0, up to scope of expression."""
+    def _reset_to_root_scope(self, datetime):
+        """Set time data in datetime to 0, up to root scope of expression."""
         current_scope = self.get_scope()
         return current_scope.unit.reset_scope(datetime)
 
+    def _reset_to_unit_scope(self, datetime):
+        """Set time data in datetime to 0, up to scope of unit."""
+        return self.unit.reset_scope(datetime)
+
     def _apply_intervals_with_rollover(self, datetime):
-        """Apply all intervals (year, quarter, month, etc.) recursively with default rollover behavior."""
-        adjustments = []
+        """Apply all intervals (year, quarter, month, etc.) recursively with default rollover behavior.
+        
+        TODO: Performance can be improved here. It should be possible to logically determine which
+        explicit_deltas need to be ignored, rather than applying all and resetting scope for each unit.
+
+        Any explicit_delta that defines a value for a unit which is smaller than the current AND is also 
+        part of the expression chain, should be able to be safely ignored. Adding the remaining deltas should
+        provide the same result.
+        """
+        adjustments = {} # Relies of preservation of insertion order.
         current = self
         while not current.is_scope:
+            unit = current.unit.name
+            adjustments[unit] = {'reset_scope_func': current.parent._reset_to_unit_scope}
+
             if current.index >= 0:
-                adjustments.append(current.unit.delta(current.index + 1))        
+                adj_timedelta = current.unit.delta(current.index + 1)   
             else:
                 # parent delta of 1 + (negative) child delta of index = delta to apply
-                adjustments.append(current.parent.unit.delta(1) + current.unit.delta(current.index))
+                adj_timedelta = current.parent.unit.delta(1) + current.unit.delta(current.index)
+            
+            adjustments[unit].update({
+                'index_delta': adj_timedelta,
+                'explicit_deltas': current.delta_queue
+            })
+            
             current = current.parent
 
         # Applied in reverse order to preserve logic
-        for adjustment in reversed(adjustments):
-            datetime += adjustment
-            
+        for adj in reversed(adjustments):
+            adjustment = adjustments[adj]
+            # Resets scope at each unit, allowing [index] to override
+            # any prior arithmetic operations
+            datetime = adjustment['reset_scope_func'](datetime)
+            datetime += adjustment['index_delta']
+            # Applies any new arithmetic operations
+            for delta in adjustment['explicit_deltas']:
+                datetime += delta
+
         return datetime
 
     def _apply_intervals_without_rollover(self, _datetime):
         """Apply intervals without allowing rollover."""
-        adjustments = {
-            'year': _datetime.year,
-            'month': _datetime.month,
-            'day': _datetime.day,
-            'hour': _datetime.hour,
-            'minute': _datetime.minute,
-            'second': _datetime.second,
-            'microsecond': _datetime.microsecond
-        }
+        def _build_adjustments(dt):
+            return {
+                'year': dt.year,
+                'month': dt.month,
+                'day': dt.day,
+                'hour': dt.hour,
+                'minute': dt.minute,
+                'second': dt.second,
+                'microsecond': dt.microsecond
+            }
 
+        adjustments = _build_adjustments(_datetime)
         current = self
+
         while not current.is_scope:
             current_adjustment = current.unit.datetime_kwarg
+
+            # Validations
             if current_adjustment not in adjustments:
                 raise ValueError(f"Invalid unit '{current_adjustment}' in expression.")
-                
+            elif current.delta_queue:
+                raise NotImplementedError('Can not perform arithmetic without rollover yet.')
+            
+            # Handling for 0-based indexing
             if current.index >= 0:
-                adjustments[current_adjustment] += current.index + 1
+                adjustments[current_adjustment] = current.index + 1
             else:
                 # Move the datetime to the parent boundary and add one
                 boundary_date = current.parent.unit.reset_scope(_datetime)
@@ -174,14 +255,17 @@ class Expression:
                 serrogate_date = boundary_date + current.unit.delta(current.index)
                 # Extract its value and add to the adjustments
                 adjustments[current_adjustment] = getattr(serrogate_date, current_adjustment)
-                
+            
+            # Extend adjustments by any lazy-evaluated arithmetic
             current = current.parent
 
         # Try to construct the date without rollover
         try:
-            return datetime.datetime(**adjustments)
+            dt = datetime.datetime(**adjustments)
         except ValueError as e:
             raise ValueError(f"Invalid date when applying adjustments: {str(e)}")
+        else:
+            return dt
 
     def __repr__(self):
         parts = []
