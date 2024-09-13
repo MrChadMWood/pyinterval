@@ -79,7 +79,7 @@ feb_30 = exp(datetime.datetime(2024, 1, 1), rollover=False)
 #### Setup
 
 ```python
-from pyintervals import Expression
+from pyintervals.expression import Expression
 import datetime
 
 exp = Expression()
@@ -105,7 +105,7 @@ print(exp.quarter.month[-1].week[3].day[4](dt))  # 2024-10-26 00:00:00
 #### More Examples
 
 ```
->>> from pyinterval import Expression
+>>> from pyinterval.expression import Expression
 >>> from datetime import datetime
 >>> exp = Expression()
 
@@ -131,6 +131,8 @@ Day > Hour[12]
 2024-09-21 23:59:59.995000
 ```
 
+#### Lazy Arithmetic Evaluation
+Here, we add 1 month and 30 minutes, while subtracting a week, from a date that hasn't been evaluated yet.
 ```
 >>> # Get current time
 >>> today = datetime.datetime.now()
