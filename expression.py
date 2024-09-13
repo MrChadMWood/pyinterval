@@ -189,28 +189,38 @@ class Expression:
         """
         adjustments = {} # Relies of preservation of insertion order.
         current = self
-        while not current.is_scope:
+        while not current.is_root:
             unit = current.unit.name
-            adjustments[unit] = {'reset_scope_func': current.parent._reset_to_unit_scope}
 
-            if current.index >= 0:
-                adj_timedelta = current.unit.delta(current.index + 1)   
+            if current.is_scope:
+                reset_scope_func = current._reset_to_unit_scope
+                
+                # Generic timedelta, for observing scopes delta queue
+                adj_timedelta = current.unit.delta(0)
             else:
-                # parent delta of 1 + (negative) child delta of index = delta to apply
-                adj_timedelta = current.parent.unit.delta(1) + current.unit.delta(current.index)
+                reset_scope_func = current.parent._reset_to_unit_scope 
+
+                # 0-based indexing
+                if current.index >= 0:
+                    adj_timedelta = current.unit.delta(current.index + 1)   
+                else:
+                    # parent delta of 1 + (negative) child delta of index = delta to apply
+                    adj_timedelta = current.parent.unit.delta(1) + current.unit.delta(current.index)                
             
-            adjustments[unit].update({
+            # Records explicit delta from scope and unit, index from unit
+            adjustments[unit] = {
+                'reset_scope_func': reset_scope_func,
                 'index_delta': adj_timedelta,
                 'explicit_deltas': current.delta_queue
-            })
+            }
             
             current = current.parent
 
         # Applied in reverse order to preserve logic
         for adj in reversed(adjustments):
+            print(adj)
             adjustment = adjustments[adj]
-            # Resets scope at each unit, allowing [index] to override
-            # any prior arithmetic operations
+            # Resets scope at each unit, allowing [index] to override any prior arithmetic operations
             datetime = adjustment['reset_scope_func'](datetime)
             datetime += adjustment['index_delta']
             # Applies any new arithmetic operations
