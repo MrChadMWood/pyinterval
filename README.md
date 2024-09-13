@@ -30,15 +30,16 @@ exp = Expression().year.month[2].day[4]
 
 Noting that index is 0-based, this represents the 5th day of the 3rd month of the year. When chaining intervals, it lways follows this scheme:
 
-   `Root().root_scope.unit_scope[index]`
+   `Root().root_scope.scope_unit[index]`
 
-with an arbitrary number of `.unit_scope[index]` in the chain. In the above example, `Expression()` is the Root, while `year` is the root_scope and `month` and `day` are both unit_scopes. 
+with an arbitrary number of `.scope_unit[index]` in the chain. In the above example, `Expression()` is the Root, while `year` is the root_scope and `month` and `day` are both scope_units.
+Each `.scope_unit[index]` can be led by another, further increasing granularity of the expression.
 
-The Root (`Expression()`) can be defined with or without a datetime object as the first argument. Doing so supplies that datetime as a default when evaluating for relative times, meaning a time doesn't need to be passed at evaluation time. If you want to override the default or simply use an expression dynamically, pass a datetime object during evaluation as the only argument.
+The Root (`Expression()`) can be defined with or without a datetime object as the first argument. Doing so supplies that datetime as a default when evaluating for relative times, meaning a time doesn't need to be passed during evaluation. If you want to override the default or simply use an expression dynamically, pass a datetime object during evaluation as the only argument.
 
-The root_scope defines the scope of your interval chain. As such, it can not be indexed. Only units of the scope can be indexed. You can, however, call the root_scope with the `n` kwarg (e.g., `Expression().quarter(n=1)`) to generate a timedelta.
+The root_scope defines the scope of your interval chain. As such, it can not be indexed. Only units of the scope can be indexed. You can, however, call the root_scope's `n` attribute (e.g., `Expression().quarter.n(1)`) to generate a timedelta. The first argument must be the number of which to be represented by the timedelta.
 
-The unit_scope divides its parent, the scope. It's called the unit_scope because it, too, can technically be a scope (just not the root_scope). When a unit's property of a smaller unit is accessed, it becomes the immediate scope of that smaller unit. In the above example, that's to say month is the scope of day but still the unit of year. The unit_scope is indexable (0-based, including negative) to specify its index within its parent.
+The scope_unit divides its parent, the scope. It's called the scope_unit because it, too, can technically be a scope (just not the root_scope). When a unit's property of a smaller unit is accessed, it becomes the immediate scope of that smaller unit. In the above example, that's to say month is the scope of day but still the unit of year. The scope_unit is indexable (0-based, including negative) to specify its index within its parent.
 
 Passing any date returns a datetime object
 ```python
