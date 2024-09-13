@@ -176,5 +176,6 @@ print(precisely_five_milli_before)
 - **Timedelta Compatibility**: Allow arithmetic with `timedelta` objects on expression chains (e.g., `chain - timedelta(days=1)`).
 - **Dynamic Chain Building**: Provide built-in methods to dynamically create chains, reducing manual effort for constructing expressions.
 - **Chain Operators**: Support chaining with the `+` operator and breaking chains with the `-` operator.
-
+- **Advanced Smart Indexing**: To define a custom time interval, allow `[start:start]` to be Expressions, and `[:step]` to be a timedelta.
+- **Rebuild in Rust**: Rebuild this in Rust. Allow use of the Rust version via Python.
 ---
