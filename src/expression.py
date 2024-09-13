@@ -35,7 +35,7 @@ class Expression:
         if _parent and _parent.unit:
             if _parent.unit.enum <= _unit.enum:
                 raise ValueError(f'{_parent.unit.name} cannot be factored by {_unit.name}')
-        elif unit:
+        elif _unit:
             is_scope = True
         else:
             is_scope = None
@@ -189,65 +189,65 @@ class Expression:
     @property
     def decade(self):
         self.validate_scheme()
-        return Expression(unit=Decade(), parent=self)
+        return Expression(_unit=Decade(), _parent=self)
 
     @property
     def year(self):
         self.validate_scheme()
-        return Expression(unit=Year(), parent=self)
+        return Expression(_unit=Year(), _parent=self)
 
     @property
     def quarter(self):
         self.validate_scheme()
-        return Expression(unit=Quarter(), parent=self)
+        return Expression(_unit=Quarter(), _parent=self)
 
     @property
     def month(self):
         self.validate_scheme()
-        return Expression(unit=Month(), parent=self)
+        return Expression(_unit=Month(), _parent=self)
 
     @property
     def week(self):
         self.validate_scheme()
-        return Expression(unit=Week(), parent=self)
+        return Expression(_unit=Week(), _parent=self)
 
     @property
     def day(self):
         self.validate_scheme()
-        return Expression(unit=Day(), parent=self)
+        return Expression(_unit=Day(), _parent=self)
 
     @property
     def hour(self):
         self.validate_scheme()
-        return Expression(unit=Hour(), parent=self)
+        return Expression(_unit=Hour(), _parent=self)
 
     @property
     def minute(self):
         self.validate_scheme()
-        return Expression(unit=Minute(), parent=self)
+        return Expression(_unit=Minute(), _parent=self)
 
     @property
     def second(self):
         self.validate_scheme()
-        return Expression(unit=Second(), parent=self)
+        return Expression(_unit=Second(), _parent=self)
 
     @property
     def decisecond(self):
         self.validate_scheme()
-        return Expression(unit=Decisecond(), parent=self)
+        return Expression(_unit=Decisecond(), _parent=self)
 
     @property
     def centisecond(self):
         self.validate_scheme()
-        return Expression(unit=Centisecond(), parent=self)
+        return Expression(_unit=Centisecond(), _parent=self)
 
     @property
     def millisecond(self):
         self.validate_scheme()
-        return Expression(unit=Millisecond(), parent=self)
+        return Expression(_unit=Millisecond(), _parent=self)
 
     @property
     def microsecond(self):
         self.validate_scheme()
-        return Expression(unit=Microsecond(), parent=self)
+        return Expression(_unit=Microsecond(), _parent=self)
         
