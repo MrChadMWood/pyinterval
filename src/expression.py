@@ -134,7 +134,7 @@ class Expression:
         current = self
         while not current.is_scope:
             if current.index >= 0:
-                adjustments.append(current.unit.delta(current.index))        
+                adjustments.append(current.unit.delta(current.index + 1))        
             else:
                 # parent delta of 1 + (negative) child delta of index = delta to apply
                 adjustments.append(current.parent.unit.delta(1) + current.unit.delta(current.index))
@@ -165,11 +165,11 @@ class Expression:
                 raise ValueError(f"Invalid unit '{current_adjustment}' in expression.")
                 
             if current.index >= 0:
-                adjustments[current_adjustment] += current.index
+                adjustments[current_adjustment] += current.index + 1
             else:
                 # Move the datetime to the parent boundary and add one
                 boundary_date = current.parent.unit.reset_scope(_datetime)
-                boundary_date += current.parent.unit.delta( current.parent.index + 1)
+                boundary_date += current.parent.unit.delta( current.parent.index)
                 # Then add the correct amount from the (negative) child unit
                 serrogate_date = boundary_date + current.unit.delta(current.index)
                 # Extract its value and add to the adjustments
