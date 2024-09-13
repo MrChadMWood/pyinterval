@@ -86,15 +86,15 @@ class Expression:
 
         while not current.is_scope:
             current = current.parent
-            
+
         return current
 
     def get_root(self):
         """Get the root object for an expression."""
-        scope = self
-        while scope.is_scope != None:
-            scope = scope.parent
-        return scope
+        current = self
+        while not current.is_root:
+            current = current.parent
+        return current
 
     def n(self, n: int | float):
         if not self.is_scope:
