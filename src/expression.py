@@ -177,7 +177,7 @@ class Expression:
         current = self
 
         # Traverse up the chain to build the representation
-        while current.is_scope is not None:
+        while not current.is_root:
             unit_name = current.unit.name if current.unit else 'Root'
             index_str = f"[{current.index + 1}]" if current.index is not None else ''
             parts.append(f'{unit_name}{index_str}')
