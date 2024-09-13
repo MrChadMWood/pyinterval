@@ -65,8 +65,10 @@ class Expression:
 
     def validate_index(self, index):
         """Validate the index value. For lazy chains, not during evaluation."""
-        if index is None or self.parent is None:
-            return
+        if not self.is_unit:
+            current_element = 'root' if self.is_root else 'scope' if self.is_scope else 'unknown-type'
+            raise ValueError(f'Can not index a {current_element}. Must be a unit.')
+
         max_value = self.get_max_index()
         if not (-max_value - 1 <= index < max_value + 1):
             raise ValueError(f"{self.unit.name} cannot accept index {index} of {self.parent.unit.name} (max: {max_value - 1})")
@@ -76,7 +78,7 @@ class Expression:
         if self.parent and self.parent.unit:
             return self.parent.unit.get_max_index(self.unit.name)
         else:
-            raise IndexError('Cannot index a scope.')
+            raise IndexError(f'{self.unit.name} has no parent to fetch its maximum index from.')
 
     def get_scope(self):
         """Get the root scope for an expression."""
