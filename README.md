@@ -104,26 +104,30 @@ print(exp.quarter.month[-1].week[3].day[4](dt))  # 2024-10-26 00:00:00
 #### More Examples
 
 ```
-today = someday = datetime.datetime.now()
+>>> from pyinterval import Expression
+>>> from datetime import datetime
+>>> exp = Expression()
 
-# Get the current week, Monday 
-this_monday_exp = Expression(today).week.day[0]
-this_monday_exp()
+>>> twelfth_hour = exp.day.hour[11]
+>>> print(twelfth_hour)
+Day > Hour[12]
 
-# Get a weekday dynamically
-exp = Expression()
-some_monday_exp = exp.week.day[0]
-some_monday = some_monday_exp(someday)
+>>> todays_twelfth_hour = twelfth_hour(datetime.now())
+>>> print(todays_twelfth_hour)
+2024-09-13 12:00:00
 
-# Add some time
-some_monday + exp.decade.n(1)
+>>> yesterdays_twelfth_hour = todays_twelfth_hour - exp.day.n(1)
+>>> print(yesterdays_twelfth_hour)
+2024-09-12 12:00:00
 
-# Subtract some time
-some_monday - exp.centisecond.n(-20)
+>>> next_week = todays_twelfth_hour + exp.week.n(1)
+>>> next_weeks_last_day = exp.week.day[-1](next_week)
+>>> print(next_weeks_last_day)
+2024-09-22 00:00:00
 
-# Get more granular
-more_granular_exp = exp.day.hour[-4].second[573].millisecond[-12].microsecond[5]
-more_granular_time = more_granular_exp(some_monday)
+>>> precisely_five_milli_before = exp.second(next_weeks_last_day) - exp.millisecond.n(5)
+>>> print(precisely_five_milli_before)
+2024-09-21 23:59:59.995000
 ```
 
 ---
