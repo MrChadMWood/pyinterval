@@ -60,14 +60,15 @@ By default, invalid dates roll over to the next valid date. For example:
 ```python
 exp = Expression().year.month[1].day[29]
 feb_30 = exp(datetime.datetime(2024, 1, 1))
-print(feb_30)  # 2024-03-01 00:00:00
+print(feb_30)
+  2024-03-01 00:00:00
 ```
 
 To disable this behavior, pass `rollover=False`:
 
 ```python
 feb_30 = exp(datetime.datetime(2024, 1, 1), rollover=False)
-# Raises: ValueError: day is out of range for month
+  Raises: ValueError: day is out of range for month
 ```
 
 ### Handling Variability in Unit Intervals
@@ -90,74 +91,80 @@ dt = datetime.datetime(2024, 12, 30, 12, 40, 35, 500000)
 
 ```python
 # Get the year start date
-print(exp.year(dt))  # 2024-01-01 00:00:00
+print(exp.year(dt))
+  2024-01-01 00:00:00
 
 # Last week, 5th day of 2nd month
-print(exp.year.month[1].week[-1].day[4](dt))  # 2024-02-27 00:00:00
+print(exp.year.month[1].week[-1].day[4](dt))
+  2024-02-27 00:00:00
 
 # 5th weekday in the current week
-print(exp.week.day[4](dt))  # 2025-01-03 00:00:00
+print(exp.week.day[4](dt))
+  2025-01-03 00:00:00
 
 # 4th week's 5th day in the last month of the quarter
-print(exp.quarter.month[-1].week[3].day[4](dt))  # 2024-10-26 00:00:00
+print(exp.quarter.month[-1].week[3].day[4](dt))
+  2024-10-26 00:00:00
+```
+
+#### Lazy Arithmetic Evaluation
+
+Here, we add 1 month and 30 minutes, while subtracting a week, from a date that hasn't been evaluated yet.
+
+```python
+# Get current time
+today = datetime.datetime.now()
+print(f'{"Right now:":20}', today)
+  Right now:           2024-09-13 13:15:16.882903
+
+# Time of meeting, which occurs on the 12th hour of the first day of the week
+this_meeting = exp.week.day[0].hour[11]
+print(f'{"This Meeting:":20}', this_meeting(today))
+  This Meeting:        2024-09-10 12:00:00
+
+# End of meeting, which occurs at the end of the hour
+end_of_this_meeting = this_meeting.minute[58].second[58]
+print(f'{"End Of This Meeting:":20}', end_of_this_meeting(today))
+  End Of This Meeting: 2024-09-10 12:59:59
+
+# Next meeting, which occurs in 1 week less than 1 month + 30 minutes from this meeting
+next_meeting = this_meeting + exp.month.n(1) + exp.minute.n(30) - exp.week.n(1)
+print(f'{"Next Meeting:":20}', next_meeting(today))
+  Next Meeting:        2024-10-03 12:30:00
+
+# End of next meeting, which occurs at the same time
+end_of_next_meeting = next_meeting.minute[58].second[58]
+print(f'{"End Of Next Meeting:":20}', end_of_next_meeting(today))
+  End Of Next Meeting: 2024-10-03 12:59:59
 ```
 
 #### More Examples
 
-```
->>> from pyinterval.expression import Expression
->>> from datetime import datetime
->>> exp = Expression()
+```python
+from pyinterval.expression import Expression
+from datetime import datetime
+exp = Expression()
 
->>> twelfth_hour = exp.day.hour[11]
->>> print(twelfth_hour)
-Day > Hour[12]
+twelfth_hour = exp.day.hour[11]
+print(twelfth_hour)
+  Day > Hour[12]
 
->>> todays_twelfth_hour = twelfth_hour(datetime.now())
->>> print(todays_twelfth_hour)
-2024-09-13 12:00:00
+todays_twelfth_hour = twelfth_hour(datetime.now())
+print(todays_twelfth_hour)
+  2024-09-13 12:00:00
 
->>> yesterdays_twelfth_hour = todays_twelfth_hour - exp.day.n(1)
->>> print(yesterdays_twelfth_hour)
-2024-09-12 12:00:00
+yesterdays_twelfth_hour = todays_twelfth_hour - exp.day.n(1)
+print(yesterdays_twelfth_hour)
+  2024-09-12 12:00:00
 
->>> next_week = todays_twelfth_hour + exp.week.n(1)
->>> next_weeks_last_day = exp.week.day[-1](next_week)
->>> print(next_weeks_last_day)
-2024-09-22 00:00:00
+next_week = todays_twelfth_hour + exp.week.n(1)
+next_weeks_last_day = exp.week.day[-1](next_week)
+print(next_weeks_last_day)
+  2024-09-22 00:00:00
 
->>> precisely_five_milli_before = exp.second(next_weeks_last_day) - exp.millisecond.n(5)
->>> print(precisely_five_milli_before)
-2024-09-21 23:59:59.995000
-```
-
-#### Lazy Arithmetic Evaluation
-Here, we add 1 month and 30 minutes, while subtracting a week, from a date that hasn't been evaluated yet.
-```
->>> # Get current time
->>> today = datetime.datetime.now()
->>> print(f'{"Right now:":20}', today)
-Right now:           2024-09-13 13:15:16.882903
-
->>> # Time of meeting, which occurs on the 12th hour of the first day of the week
->>> this_meeting = exp.week.day[0].hour[11]
->>> print(f'{"This Meeting:":20}', this_meeting(today))
-This Meeting:        2024-09-10 12:00:00
-
->>> # End of meeting, which occurs at the end of the hour
->>> end_of_this_meeting = this_meeting.minute[58].second[58]
->>> print(f'{"End Of This Meeting:":20}', end_of_this_meeting(today))
-End Of This Meeting: 2024-09-10 12:59:59
-
->>> # Next meeting, which occurs in 1 week less than 1 month + 30 minutes from this meeting
->>> next_meeting = this_meeting + exp.month.n(1) + exp.minute.n(30) - exp.week.n(1)
->>> print(f'{"Next Meeting:":20}', next_meeting(today))
-Next Meeting:        2024-10-03 12:30:00
-
->>> # End of next meeting, which occurs at the same time
->>> end_of_next_meeting = next_meeting.minute[58].second[58]
->>> print(f'{"End Of Next Meeting:":20}', end_of_next_meeting(today))
-End Of Next Meeting: 2024-10-03 12:59:59
+precisely_five_milli_before = exp.second(next_weeks_last_day) - exp.millisecond.n(5)
+print(precisely_five_milli_before)
+  2024-09-21 23:59:59.995000
 ```
 
 ---
