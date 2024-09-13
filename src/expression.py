@@ -33,6 +33,8 @@ class Expression:
     def __init__(self, root_datetime=None, *, __unit=None, __parent=None):
         if __parent and __parent.unit and __parent.unit.enum <= __unit.enum:
             raise ValueError(f'{__parent.unit.name} cannot be factored by {__unit.name}')
+        elif __parent and root_datetime is not None:
+            raise ValueError('A root_datetime should be passed with the root.')
         
         # Determining which part of expression `self` is
         self.is_root = self.is_scope = self.is_unit = False
@@ -97,20 +99,25 @@ class Expression:
             raise AttributeError('Can only create timedelta from a scope.')
         return self.unit.delta(n)
 
-    def __call__(self, datetime=None, rollover=True):
-        """Apply the expression to a date. Rollover controls whether to allow excess time to increment parent units."""
-        
-        datetime = datetime if datetime is not None else self.get_root().datetime
-        if not datetime:
+    def __call__(self, dt=None, rollover=True):
+        """Apply the expression to a date. Rollover controls whether to allow excess time to increment parent units."""    
+        dt = dt if dt is not None else self.get_root().datetime
+
+        if not dt:
             raise ValueError('A datetime object is required.')
-
-        datetime = self._reset_to_scope(datetime)
+        elif isinstance(dt, type(datetime.date)) and not isinstance(dt, type(datetime.datetime)):
+            # Convert datetime.date to datetime.datetime (default to midnight)
+            dt = datetime.datetime.combine(dt, datetime.time.min)
+        elif not isinstance(dt, datetime.datetime):
+            raise ValueError(f'datetime arg needs to be a datetime, not {type(dt)}')
+            
+        dt = self._reset_to_scope(dt)
         if rollover:
-            datetime = self._apply_intervals_with_rollover(datetime)
+            dt = self._apply_intervals_with_rollover(dt)
         else:
-            datetime = self._apply_intervals_without_rollover(datetime)
+            dt = self._apply_intervals_without_rollover(dt)
 
-        return datetime
+        return dt
 
     def _reset_to_scope(self, datetime):
         """Set time data in datetime to 0, up to scope of expression."""
