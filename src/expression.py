@@ -27,23 +27,25 @@ class Expression:
             root_datetime (datetime.datetime): Initial datetime.
 
         Handled automatically, not passed by user.
-            _unit (Unit): The Unit in this part of the expression
-            _parent (Expression): The parent unit of this part of the expression
+            __unit (Unit): The Unit in this part of the expression
+            __parent (Expression): The parent unit of this part of the expression
     """
-    def __init__(self, root_datetime=None, _unit=None, _parent=None):
-        is_scope = False
-        if _parent and _parent.unit:
-            if _parent.unit.enum <= _unit.enum:
-                raise ValueError(f'{_parent.unit.name} cannot be factored by {_unit.name}')
-        elif _unit:
-            is_scope = True
+    def __init__(self, root_datetime=None, *, __unit=None, __parent=None):
+        if __parent and __parent.unit and __parent.unit.enum <= __unit.enum:
+            raise ValueError(f'{__parent.unit.name} cannot be factored by {__unit.name}')
+        
+        # Determining which part of expression `self` is
+        self.is_root = self.is_scope = self.is_unit = False
+        if not __parent:
+            self.is_root = True
+        elif __parent.is_root:
+            self.is_scope = True
         else:
-            is_scope = None
+            self.is_unit = True
 
-        self.unit = _unit
-        self.parent = _parent
+        self.unit = __unit
+        self.parent = __parent
         self.index = None
-        self.is_scope = is_scope
         self.datetime = root_datetime
 
     def __getitem__(self, index):
@@ -54,9 +56,9 @@ class Expression:
 
     def validate_scheme(self):
         """Ensure parent unit is indexed before accessing child units."""
-        if self.is_scope is None:
+        if self.is_root or self.is_scope:
             return
-        elif not self.is_scope and self.index is None:
+        elif self.index is None:
             raise ValueError(f"Cannot access child units before indexing {self.unit.name}.")
 
     def validate_index(self, index):
@@ -175,79 +177,76 @@ class Expression:
         current = self
 
         # Traverse up the chain to build the representation
-        while current:
+        while current.is_scope is not None:
             unit_name = current.unit.name if current.unit else 'Root'
             index_str = f"[{current.index + 1}]" if current.index is not None else ''
             parts.append(f'{unit_name}{index_str}')
-            if current.is_scope:
-                current = None
-            else:
-                current = current.parent
+            current = current.parent
 
         return ' > '.join(reversed(parts))
 
     @property
     def decade(self):
         self.validate_scheme()
-        return Expression(_unit=Decade(), _parent=self)
+        return Expression(_Expression__unit=Decade(), _Expression__parent=self)
 
     @property
     def year(self):
         self.validate_scheme()
-        return Expression(_unit=Year(), _parent=self)
+        return Expression(_Expression__unit=Year(), _Expression__parent=self)
 
     @property
     def quarter(self):
         self.validate_scheme()
-        return Expression(_unit=Quarter(), _parent=self)
+        return Expression(_Expression__unit=Quarter(), _Expression__parent=self)
 
     @property
     def month(self):
         self.validate_scheme()
-        return Expression(_unit=Month(), _parent=self)
+        return Expression(_Expression__unit=Month(), _Expression__parent=self)
 
     @property
     def week(self):
         self.validate_scheme()
-        return Expression(_unit=Week(), _parent=self)
+        return Expression(_Expression__unit=Week(), _Expression__parent=self)
 
     @property
     def day(self):
         self.validate_scheme()
-        return Expression(_unit=Day(), _parent=self)
+        return Expression(_Expression__unit=Day(), _Expression__parent=self)
 
     @property
     def hour(self):
         self.validate_scheme()
-        return Expression(_unit=Hour(), _parent=self)
+        return Expression(_Expression__unit=Hour(), _Expression__parent=self)
 
     @property
     def minute(self):
         self.validate_scheme()
-        return Expression(_unit=Minute(), _parent=self)
+        return Expression(_Expression__unit=Minute(), _Expression__parent=self)
 
     @property
     def second(self):
         self.validate_scheme()
-        return Expression(_unit=Second(), _parent=self)
+        return Expression(_Expression__unit=Second(), _Expression__parent=self)
 
     @property
     def decisecond(self):
         self.validate_scheme()
-        return Expression(_unit=Decisecond(), _parent=self)
+        return Expression(_Expression__unit=Decisecond(), _Expression__parent=self)
 
     @property
     def centisecond(self):
         self.validate_scheme()
-        return Expression(_unit=Centisecond(), _parent=self)
+        return Expression(_Expression__unit=Centisecond(), _Expression__parent=self)
 
     @property
     def millisecond(self):
         self.validate_scheme()
-        return Expression(_unit=Millisecond(), _parent=self)
+        return Expression(_Expression__unit=Millisecond(), _Expression__parent=self)
 
     @property
     def microsecond(self):
         self.validate_scheme()
-        return Expression(_unit=Microsecond(), _parent=self)
+        return Expression(_Expression__unit=Microsecond(), _Expression__parent=self)
         
