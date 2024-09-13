@@ -80,12 +80,14 @@ class Expression:
 
     def get_scope(self):
         """Get the root scope for an expression."""
-        scope = self
-        while scope.is_scope == False:
-            scope = scope.parent
-        if scope.is_scope == None:
+        current = self
+        if current.is_root:
             raise ValueError('No scope has been defined.')
-        return scope
+
+        while not current.is_scope:
+            current = current.parent
+            
+        return current
 
     def get_root(self):
         """Get the root object for an expression."""
