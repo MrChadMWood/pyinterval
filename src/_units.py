@@ -25,6 +25,7 @@ class Unit:
         self.relativedelta_multiplier = self.meta['relativedelta_multiplier']
         self.datetime_kwarg = self.meta['datetime_kwarg']
         self.max_intervals = self.meta['max_intervals']
+        self.carry_residual_time = self.meta['carry_residual_time']
 
     def get_max_index(self, child_unit):
         """Get max index for a child unit."""
@@ -47,11 +48,14 @@ class Microsecond(Unit):
         'relativedelta_multiplier': 1,
         'datetime_kwarg': 'microsecond',
         'parent_class': None,
-        'max_intervals': {}
+        'max_intervals': {},
+        'carry_residual_time': True
     }
 
     def reset_scope(self, date):
-        return super().reset_scope(date, {'microsecond': 0})
+        microsecond_part = date.microsecond % 1000  # Keep residual microseconds (the last 3 digits)
+        new_microsecond_value = (date.microsecond // 1000) * 1000 + microsecond_part
+        return super().reset_scope(date, {'microsecond': new_microsecond_value})
 
 
 class Millisecond(Unit):
@@ -62,11 +66,14 @@ class Millisecond(Unit):
         'relativedelta_multiplier': 1000,
         'datetime_kwarg': 'microsecond',
         'parent_class': Microsecond,
-        'max_intervals': {Microsecond.meta['name']: 1000}
+        'max_intervals': {Microsecond.meta['name']: 1000},
+        'carry_residual_time': True
     }
 
     def reset_scope(self, date):
-        return super().reset_scope(date, {'microsecond': (date.microsecond // self.relativedelta_multiplier) * self.relativedelta_multiplier})
+        # Reset the microseconds, keep only millisecond portion
+        new_microsecond_value = (date.microsecond // 1000) * 1000
+        return super().reset_scope(date, {'microsecond': new_microsecond_value})
 
 
 class Centisecond(Unit):
@@ -80,18 +87,21 @@ class Centisecond(Unit):
         'max_intervals': {
             Microsecond.meta['name']: 10000, 
             Millisecond.meta['name']: 10
-        }
+        },
+        'carry_residual_time': True
     }
 
     def reset_scope(self, date):
-        return super().reset_scope(date, {'microsecond': (date.microsecond // self.relativedelta_multiplier) * self.relativedelta_multiplier})
+        # Reset microseconds and milliseconds, keep only centisecond portion
+        new_microsecond_value = (date.microsecond // 10000) * 10000
+        return super().reset_scope(date, {'microsecond': new_microsecond_value})
 
 
 class Decisecond(Unit):
     meta = {
         'enum': 0.3,
         'name': 'Decisecond',
-        'relativedelta_kwarg': 'milliseconds',
+        'relativedelta_kwarg': 'microseconds',
         'relativedelta_multiplier': 100000,
         'datetime_kwarg': 'microsecond',
         'parent_class': Centisecond,
@@ -99,11 +109,14 @@ class Decisecond(Unit):
             Microsecond.meta['name']: 100000, 
             Millisecond.meta['name']: 100, 
             Centisecond.meta['name']: 10
-        }
+        },
+        'carry_residual_time': True
     }
 
     def reset_scope(self, date):
-        return super().reset_scope(date, {'microsecond': (date.microsecond // self.relativedelta_multiplier) * self.relativedelta_multiplier})
+        # Reset microseconds, milliseconds, and centiseconds, keep only decisecond portion
+        new_microsecond_value = (date.microsecond // 100000) * 100000
+        return super().reset_scope(date, {'microsecond': new_microsecond_value})
 
 
 class Second(Unit):
@@ -119,10 +132,12 @@ class Second(Unit):
             Millisecond.meta['name']: 1000,
             Centisecond.meta['name']: 100,
             Decisecond.meta['name']: 10
-        }
+        },
+        'carry_residual_time': True
     }
 
     def reset_scope(self, date):
+        # Reset all microseconds
         return super().reset_scope(date, {'microsecond': 0})
 
 
@@ -140,7 +155,8 @@ class Minute(Unit):
             Centisecond.meta['name']: 6000,
             Decisecond.meta['name']: 600,
             Second.meta['name']: 60
-        }
+        },
+        'carry_residual_time': True
     }
 
     def reset_scope(self, date):
@@ -162,7 +178,8 @@ class Hour(Unit):
             Decisecond.meta['name']: 36000,
             Second.meta['name']: 3600,
             Minute.meta['name']: 60
-        }
+        },
+        'carry_residual_time': True
     }
 
     def reset_scope(self, date):
@@ -185,7 +202,8 @@ class Day(Unit):
             Second.meta['name']: 86400,
             Minute.meta['name']: 1440,
             Hour.meta['name']: 24
-        }
+        },
+        'carry_residual_time': False
     }
 
     def reset_scope(self, date):
@@ -209,7 +227,8 @@ class Week(Unit):
             Minute.meta['name']: 10080,
             Hour.meta['name']: 168,
             Day.meta['name']: 7
-        }
+        },
+        'carry_residual_time': False
     }
 
     def reset_scope(self, date):
@@ -236,7 +255,8 @@ class Month(Unit):
             Hour.meta['name']: 840,
             Day.meta['name']: 35,
             Week.meta['name']: 5
-        }
+        },
+        'carry_residual_time': False
     }
 
     def reset_scope(self, date):
@@ -262,7 +282,8 @@ class Quarter(Unit):
             Day.meta['name']: 98,
             Week.meta['name']: 14,
             Month.meta['name']: 3
-        }
+        },
+        'carry_residual_time': False
     }
 
     def reset_scope(self, date):
@@ -290,7 +311,8 @@ class Year(Unit):
             Week.meta['name']: 53,
             Month.meta['name']: 12,
             Quarter.meta['name']: 4
-        }
+        },
+        'carry_residual_time': True
     }
 
     def reset_scope(self, date):
@@ -318,7 +340,8 @@ class Decade(Unit):
             Month.meta['name']: 120,
             Quarter.meta['name']: 40,
             Year.meta['name']: 10 
-        }
+        },
+        'carry_residual_time': True
     }
 
     def reset_scope(self, date):

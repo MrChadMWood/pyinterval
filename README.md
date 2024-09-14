@@ -4,7 +4,7 @@ This library is still in its **alpha stage**. Contributions and feedback are wel
 
 ---
 
-Next TODO: Add unit tests.
+Known Issue: Time rollover is not functional during expression evaluation at the moment. This is due to complexity in handling edge cases between handling residual time that needs to be removed (as with day and month being at minimum equal to 1) and residual time that needs to be persisted (as with deciseconds when indexing milleseconds, as they're both secretly using microseconds.) during operations.
 
 # Relative Dates Library
 
