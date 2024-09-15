@@ -25,7 +25,6 @@ class Unit:
         self.relativedelta_multiplier = self.meta['relativedelta_multiplier']
         self.datetime_kwarg = self.meta['datetime_kwarg']
         self.max_intervals = self.meta['max_intervals']
-        self.carry_residual_time = self.meta['carry_residual_time']
         self.scope_reset_residual = self.meta['scope_reset_residual']
 
     def get_max_index(self, child_unit):
@@ -57,8 +56,7 @@ class Microsecond(Unit):
         'scope_reset_residual': 0,
         'datetime_kwarg': 'microsecond',
         'parent_class': None,
-        'max_intervals': {},
-        'carry_residual_time': True,
+        'max_intervals': {}
     }
 
     def reset_scope(self, date):
@@ -79,8 +77,7 @@ class Millisecond(Unit):
         'scope_reset_residual': 0,
         'datetime_kwarg': 'microsecond',
         'parent_class': Microsecond,
-        'max_intervals': {Microsecond.meta['name']: 1000},
-        'carry_residual_time': True
+        'max_intervals': {Microsecond.meta['name']: 1000}
     }
 
     def reset_scope(self, date):
@@ -104,8 +101,7 @@ class Centisecond(Unit):
         'max_intervals': {
             Microsecond.meta['name']: 10000, 
             Millisecond.meta['name']: 10
-        },
-        'carry_residual_time': True
+        }
     }
 
     def reset_scope(self, date):
@@ -130,8 +126,7 @@ class Decisecond(Unit):
             Microsecond.meta['name']: 100000, 
             Millisecond.meta['name']: 100, 
             Centisecond.meta['name']: 10
-        },
-        'carry_residual_time': True
+        }
     }
 
     def reset_scope(self, date):
@@ -156,8 +151,7 @@ class Second(Unit):
             Millisecond.meta['name']: 1000,
             Centisecond.meta['name']: 100,
             Decisecond.meta['name']: 10
-        },
-        'carry_residual_time': True
+        }
     }
 
     def reset_scope(self, date):
@@ -182,8 +176,7 @@ class Minute(Unit):
             Centisecond.meta['name']: 6000,
             Decisecond.meta['name']: 600,
             Second.meta['name']: 60
-        },
-        'carry_residual_time': True
+        }
     }
 
     def reset_scope(self, date):
@@ -209,8 +202,7 @@ class Hour(Unit):
             Decisecond.meta['name']: 36000,
             Second.meta['name']: 3600,
             Minute.meta['name']: 60
-        },
-        'carry_residual_time': True
+        }
     }
 
     def reset_scope(self, date):
@@ -237,8 +229,7 @@ class Day(Unit):
             Second.meta['name']: 86400,
             Minute.meta['name']: 1440,
             Hour.meta['name']: 24
-        },
-        'carry_residual_time': False
+        }
     }
 
     def reset_scope(self, date):
@@ -267,8 +258,7 @@ class Week(Unit):
             Minute.meta['name']: 10080,
             Hour.meta['name']: 168,
             Day.meta['name']: 7
-        },
-        'carry_residual_time': False
+        }
     }
 
     def reset_scope(self, date):
@@ -299,8 +289,7 @@ class Month(Unit):
             Hour.meta['name']: 840,
             Day.meta['name']: 35,
             Week.meta['name']: 5
-        },
-        'carry_residual_time': False
+        }
     }
 
     def reset_scope(self, date):
@@ -330,8 +319,7 @@ class Quarter(Unit):
             Day.meta['name']: 98,
             Week.meta['name']: 14,
             Month.meta['name']: 3
-        },
-        'carry_residual_time': False
+        }
     }
 
     def reset_scope(self, date):
@@ -363,8 +351,7 @@ class Year(Unit):
             Week.meta['name']: 53,
             Month.meta['name']: 12,
             Quarter.meta['name']: 4
-        },
-        'carry_residual_time': True
+        }
     }
 
     def reset_scope(self, date):
@@ -396,8 +383,7 @@ class Decade(Unit):
             Month.meta['name']: 120,
             Quarter.meta['name']: 40,
             Year.meta['name']: 10 
-        },
-        'carry_residual_time': True
+        }
     }
 
     def reset_scope(self, date):

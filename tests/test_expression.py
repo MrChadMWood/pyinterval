@@ -35,7 +35,7 @@ class TestExpression(unittest.TestCase):
 
     def test_all_unit_types_descending(self):
         """Test if all unit types can be chained without errors."""
-        root_part = Expression(self.base_dt)
+        root_part = Expression()
         # One level deep
         for i, unit in enumerate(self.unit_types_descending):
             scope_part = getattr(root_part, unit)
@@ -43,8 +43,8 @@ class TestExpression(unittest.TestCase):
             for j, _unit in enumerate(self.unit_types_descending[i + 1:]):
                 unit_part = getattr(scope_part, _unit)
                 # Three levels deep
-                for _ in self.unit_types_descending[j + 1:]:
-                    getattr(unit_part, _)
+                for __unit in self.unit_types_descending[j + i + 2:]:
+                    getattr(unit_part[0], __unit)
 
     def test_root_datetime(self):
         """Test the initialization of an Expression without a root datetime."""
@@ -100,8 +100,8 @@ class TestExpression(unittest.TestCase):
 
             # Test two levels deep
             for n in range(0, 6):
-                result_expr = result_expr.week[n]
-                self.assertEqual(result_expr.index, n)
+                _result_expr = result_expr.week[n]
+                self.assertEqual(_result_expr.index, n)
 
     def test_lazy_validation(self):
         """Test lazily validating indexes and ensuring correct boundaries."""
@@ -111,7 +111,7 @@ class TestExpression(unittest.TestCase):
             scope = getattr(expr, unit)
             for _unit in self.unit_types_descending[i + 1:]:
                 new_expr = getattr(scope, _unit)
-                max_index = expr.unit.get_max_index(new_expr.unit)
+                max_index = new_expr.get_max_index()
                 try:
                     new_expr[max_index + 1]
                 except ValueError:
@@ -140,21 +140,21 @@ class TestExpression(unittest.TestCase):
 
     def test_expression_addition_lazy_eval(self):
         """Test adding a relative delta to an Expression and ensuring lazy evaluation."""
-        expr = Expression().year.n(2024)
+        expr = Expression().year
         delta = relativedelta(years=2)
         new_expr = expr + delta
 
         expected_dt = datetime.datetime(2026, 1, 1)
-        result_dt = new_expr(self.base_dt)
+        result_dt = new_expr(datetime.datetime(2024, 12, 25))
 
         self.assertEqual(result_dt, expected_dt)
 
     def test_expression_subtraction_lazy_eval(self):
         """Test subtracting a relative delta from an Expression."""
-        expr = Expression().year
+        expr = Expression()
         some_date = datetime.datetime(2024, 1, 1)
 
-        two_years_before_expr = expr - expr.year.n(2)
+        two_years_before_expr = expr.year - expr.year.n(2)
 
         expected_dt = datetime.datetime(2022, 1, 1)
         result_dt = two_years_before_expr(some_date)
@@ -177,7 +177,7 @@ class TestExpression(unittest.TestCase):
         feb_date = datetime.datetime(2024, 2, 1)
 
         # Without rollover, should raise an error for invalid day in February
-        with self.assertRaises(ValueError):
+        with self.assertRaises(IndexError):
             expr(feb_date, rollover=False)
 
     def test_yesterday(self):

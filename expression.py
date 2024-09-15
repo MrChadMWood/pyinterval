@@ -107,7 +107,9 @@ class Expression:
 
     def __add__(self, other):
         """Handle addition of timedelta-like objects to create lazy expressions."""
-        if isinstance(other, relativedelta):
+        if self.is_root:
+            raise ValueError('Must access a scope property to apply operations.')
+        elif isinstance(other, relativedelta):
             # Returns copy of itself, not performing in-place changes
             new_expr = deepcopy(self)
             new_expr.operations_delta += other
@@ -123,7 +125,9 @@ class Expression:
 
     def __sub__(self, other):
         """Handle subtraction of timedelta-like objects to create lazy expressions."""
-        if isinstance(other, relativedelta):
+        if self.is_root:
+            raise ValueError('Must access a scope property to apply operations.')
+        elif isinstance(other, relativedelta):
             new_expr = deepcopy(self)
             new_expr.operations_delta -= other
             return new_expr
@@ -134,14 +138,12 @@ class Expression:
 
     def __rsub__(self, other):
         """Right-hand subtraction."""
-        if isinstance(other, Expression):
+        if self.is_root:
+            raise ValueError('Must access a scope property to apply operations.')
+        elif isinstance(other, Expression):
             raise NotImplementedError('Combining and breaking Expression chains is upcoming.')
         else:
             raise NotImplementedError('Can not subtract a relative time Expression from another object.')
-
-    def apply_deltas(self, dt):
-        """Apply delta queue to the given datetime."""
-        return dt + self.operations_delta
 
     def __call__(self, dt=None, rollover=True, operation_safe=False):
         """Apply the expression to a date. Rollover controls whether to allow excess time to increment parent units."""    
@@ -156,6 +158,8 @@ class Expression:
             raise ValueError(f'datetime arg needs to be a datetime, not {type(dt)}')
         elif rollover and operation_safe:
             raise ValueError('The operation_safe flag is only effective when rollover is disabled.')
+        elif not self.is_scope and self.index is None:
+            raise IndexError(f'All units must be indexed. {self.unit.name} missing index.')
             
         dt = self._reset_to_root_scope(dt)
         dt = self._apply_intervals(dt, rollover_allowed=rollover, operation_safe=operation_safe)
@@ -211,6 +215,8 @@ class Expression:
             if interval.is_scope:
                 # Initialize for first evaluation against expression scope
                 last_unit_value = interval.unit.value(dt)
+                dt += interval.operations_delta
+                # Skips unnecessary rollover check
                 continue
             else:
                 # Increments datetime by index
@@ -233,17 +239,24 @@ class Expression:
         return dt
 
     def __repr__(self):
+        chain = self._get_expression_chain()
         parts = []
-        current = self
 
-        # Traverse up the chain to build the representation
-        while not current.is_root:
-            unit_name = current.unit.name if current.unit else 'Root'
-            index_str = f"[{current.index + 1}]" if current.index is not None else ''
-            parts.append(f'{unit_name}{index_str}')
-            current = current.parent
+        for interval in chain:
+            unit_name = interval.unit.name
 
-        return ' > '.join(reversed(parts))
+            index_str = f''
+            if interval.index:
+                index = interval.index + 1 if interval.index > 0 else interval.index
+                index_str = f'[{index}]'
+
+            interval_str = f'{unit_name}{index_str}'
+            if interval.operations_delta:
+                interval_str = f'{interval_str} + {interval.operations_delta}'
+
+            parts.append(interval_str)
+
+        return ' > '.join(parts)
 
     @property
     def decade(self):
