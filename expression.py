@@ -143,7 +143,7 @@ class Expression:
         """Apply delta queue to the given datetime."""
         return dt + self.operations_delta
 
-    def __call__(self, dt=None, rollover=True):
+    def __call__(self, dt=None, rollover=True, operation_safe=False):
         """Apply the expression to a date. Rollover controls whether to allow excess time to increment parent units."""    
         dt = dt if dt is not None else self.get_root().datetime
 
@@ -154,13 +154,11 @@ class Expression:
             dt = datetime.datetime.combine(dt, datetime.time.min)
         elif not isinstance(dt, datetime.datetime):
             raise ValueError(f'datetime arg needs to be a datetime, not {type(dt)}')
+        elif rollover and operation_safe:
+            raise ValueError('The operation_safe flag is only effective when rollover is disabled.')
             
         dt = self._reset_to_root_scope(dt)
-        if rollover:
-            dt = self._apply_intervals_with_rollover(dt)
-        else:
-            dt = self._apply_intervals_without_rollover(dt)
-
+        dt = self._apply_intervals(dt, rollover_allowed=rollover, operation_safe=operation_safe)
         return dt
 
     def _get_expression_chain(self):
@@ -180,78 +178,59 @@ class Expression:
         """Set time data in datetime to 0, up to scope of unit."""
         return self.unit.reset_scope(datetime)
 
-    def _apply_intervals_with_rollover(self, datetime):
-        """Apply all intervals (year, quarter, month, etc.) recursively with default rollover behavior."""
-        chain = self._get_expression_chain()
-        for interval in chain:
-            datetime = interval._reset_to_unit_scope(datetime)
-
+    @staticmethod
+    def _get_index_delta(interval):
+        if interval.index >= 0:
             # 0-based indexing
-            if interval.index is not None and interval.index >= 0:
-                residual_time = 0
-                if interval.unit.carry_residual_time:
-                    residual_time = getattr(datetime, interval.unit.datetime_kwarg)
-
-                adjustment = (interval.index + 1) * interval.unit.relativedelta_multiplier
-                # This doesnt work with rollover. Needs to increment, not assign
-                datetime = datetime.replace(**{interval.unit.datetime_kwarg: adjustment + residual_time})
-
-            elif interval.index is not None:
-                # parent delta of 1 + (negative) child delta of index = delta to apply
-                datetime += interval.parent.unit.delta(1) + interval.unit.delta(interval.index)  
-
-            # Applies any new arithmetic operations
-            datetime += interval.operations_delta
-            
-        return datetime
-
-    def _apply_intervals_without_rollover(self, _datetime):
-        """Apply intervals without allowing rollover."""
-        def _build_adjustments(dt):
-            return {
-                'year': dt.year,
-                'month': dt.month,
-                'day': dt.day,
-                'hour': dt.hour,
-                'minute': dt.minute,
-                'second': dt.second,
-                'microsecond': dt.microsecond
-            }
-
-        adjustments = _build_adjustments(_datetime)
-        current = self
-
-        while not current.is_scope:
-            current_adjustment = current.unit.datetime_kwarg
-
-            # Validations
-            if current_adjustment not in adjustments:
-                raise ValueError(f"Invalid unit '{current_adjustment}' in expression.")
-            elif current.operations_delta:
-                raise NotImplementedError('Can not perform arithmetic without rollover yet.')
-            
-            # Handling for 0-based indexing
-            if current.index >= 0:
-                adjustments[current_adjustment] = current.index + 1
-            else:
-                # Move the datetime to the parent boundary and add one
-                boundary_date = current.parent.unit.reset_scope(_datetime)
-                boundary_date += current.parent.unit.delta( current.parent.index)
-                # Then add the correct amount from the (negative) child unit
-                serrogate_date = boundary_date + current.unit.delta(current.index)
-                # Extract its value and add to the adjustments
-                adjustments[current_adjustment] = getattr(serrogate_date, current_adjustment)
-            
-            # Extend adjustments by any lazy-evaluated arithmetic
-            current = current.parent
-
-        # Try to construct the date without rollover
-        try:
-            dt = datetime.datetime(**adjustments)
-        except ValueError as e:
-            raise ValueError(f"Invalid date when applying adjustments: {str(e)}")
+            adjustment = interval.index + 1 
+            # Accounts for variance in min possible time (e.g., second: 0, day: 1)
+            adjustment -= interval.unit.scope_reset_residual
+            return interval.unit.delta(adjustment)
         else:
-            return dt
+            # parent delta of 1 + (negative) child delta of index = delta to apply
+            return interval.parent.unit.delta(1) + interval.unit.delta(interval.index)
+
+    def _apply_intervals(self, dt, rollover_allowed, operation_safe):
+        """Apply all intervals recursively, with or without rollover based on the flag."""
+
+        # Checks if parent unit value is different from provided value
+        def check_for_rollover(interval, last_parent_value):
+            if last_parent_value != interval.parent.unit.value(dt):
+                raise IndexError(
+                    f"Rollover occurred for {interval.parent.unit.name} from {last_parent_value}"
+                    f" to {interval.parent.unit.value(dt)}.")
+        
+        # Get expression chain in unit descending order, from scope
+        chain = self._get_expression_chain()
+
+        # Iter the expression chain from largest to smallest interval
+        for interval in chain:
+            # Reset datetime to precision of the current interval
+            dt = interval._reset_to_unit_scope(dt)
+
+            if interval.is_scope:
+                # Initialize for first evaluation against expression scope
+                last_unit_value = interval.unit.value(dt)
+                continue
+            else:
+                # Increments datetime by index
+                delta = self._get_index_delta(interval)
+                dt += delta
+
+            if rollover_allowed:
+                dt += interval.operations_delta
+            elif operation_safe:
+                check_for_rollover(interval, last_unit_value)
+                dt += interval.operations_delta
+                # Resets for next loops rollover check
+                last_unit_value = interval.unit.value(dt)
+            else:
+                dt += interval.operations_delta
+                check_for_rollover(interval, last_unit_value)
+                # Resets for next loops rollover check
+                last_unit_value = interval.unit.value(dt)
+
+        return dt
 
     def __repr__(self):
         parts = []

@@ -215,11 +215,17 @@ class TestExpression(unittest.TestCase):
         self.assertTrue(some_other_expr.operations_delta)
 
         # Test more complex operations with finer granularity
-        final_complex_expr = (expr.year.month[1].day[27] + expr.day.n(1) - expr.month.n(1)).minute[5].second[4].decisecond[-2].millisecond[5].microsecond[2]
+        final_complex_expr = (
+            expr.year.month[1].day[27] # Feb 28th, n year
+            + expr.day.n(1) # Feb 29th
+            - expr.month.n(1) # Jan 29th
+        ).minute[5].second[4].decisecond[-2].millisecond[5].microsecond[-1]
+
         final_complex_date = final_complex_expr(some_date)
-        final_complex_date_expectation = datetime.datetime(2024, 1, 29, 0, 6, 5, 806003)
+        final_complex_date_expectation = datetime.datetime(2024, 1, 29, 0, 6, 5, 806999)
         self.assertEqual(final_complex_date, final_complex_date_expectation)
 
 
 if __name__ == '__main__':
     unittest.main()
+    # Add tests that make sure abstract time units correctly reset scope.
