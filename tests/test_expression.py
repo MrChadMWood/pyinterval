@@ -1,30 +1,32 @@
 import sys
 import os
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import unittest
 import datetime
 from expression import Expression
 from dateutil.relativedelta import relativedelta
 
+
 class TestExpression(unittest.TestCase):
     def setUp(self):
         """Sets up a base datetime for use in tests."""
         self.base_dt = datetime.datetime(2024, 1, 1, 0, 0, 0)
         self.unit_types_descending = [
-            'decade', 
-            'year', 
-            'quarter',
-            'month', 
-            'week', 
-            'day', 
-            'hour', 
-            'minute', 
-            'second', 
-            'decisecond', 
-            'centisecond', 
-            'millisecond', 
-            'microsecond', 
+            "decade",
+            "year",
+            "quarter",
+            "month",
+            "week",
+            "day",
+            "hour",
+            "minute",
+            "second",
+            "decisecond",
+            "centisecond",
+            "millisecond",
+            "microsecond",
         ]
 
     def test_init_with_root_datetime(self):
@@ -40,10 +42,10 @@ class TestExpression(unittest.TestCase):
         for i, unit in enumerate(self.unit_types_descending):
             scope_part = getattr(root_part, unit)
             # Two levels deep
-            for j, _unit in enumerate(self.unit_types_descending[i + 1:]):
+            for j, _unit in enumerate(self.unit_types_descending[i + 1 :]):
                 unit_part = getattr(scope_part, _unit)
                 # Three levels deep
-                for __unit in self.unit_types_descending[j + i + 2:]:
+                for __unit in self.unit_types_descending[j + i + 2 :]:
                     getattr(unit_part[0], __unit)
 
     def test_root_datetime(self):
@@ -80,7 +82,7 @@ class TestExpression(unittest.TestCase):
             # Assert that its parent is the root
             self.assertTrue(scope_part.parent.is_root)
 
-            for _unit in self.unit_types_descending[i + 1:]:
+            for _unit in self.unit_types_descending[i + 1 :]:
                 unit_part = getattr(scope_part, _unit)
                 self.assertFalse(unit_part.is_root)
                 self.assertFalse(unit_part.is_scope)
@@ -109,7 +111,7 @@ class TestExpression(unittest.TestCase):
 
         for i, unit in enumerate(self.unit_types_descending):
             scope = getattr(expr, unit)
-            for _unit in self.unit_types_descending[i + 1:]:
+            for _unit in self.unit_types_descending[i + 1 :]:
                 new_expr = getattr(scope, _unit)
                 max_index = new_expr.get_max_index()
                 try:
@@ -117,7 +119,9 @@ class TestExpression(unittest.TestCase):
                 except ValueError:
                     pass
                 else:
-                    self.fail(f'{unit} should not accept an index larger than {max_index}.')
+                    self.fail(
+                        f"{unit} should not accept an index larger than {max_index}."
+                    )
 
     def test_negative_indexing(self):
         """Test negative indexing for units like last day of the month or week."""
@@ -216,16 +220,25 @@ class TestExpression(unittest.TestCase):
 
         # Test more complex operations with finer granularity
         final_complex_expr = (
-            expr.year.month[1].day[27] # Feb 28th, n year
-            + expr.day.n(1) # Feb 29th
-            - expr.month.n(1) # Jan 29th
-        ).minute[5].second[4].decisecond[-2].millisecond[5].microsecond[-1]
+            (
+                expr.year.month[1].day[27]  # Feb 28th, n year
+                + expr.day.n(1)  # Feb 29th
+                - expr.month.n(1)  # Jan 29th
+            )
+            .minute[5]
+            .second[4]
+            .decisecond[-2]
+            .millisecond[5]
+            .microsecond[-1]
+        )
 
         final_complex_date = final_complex_expr(some_date)
         final_complex_date_expectation = datetime.datetime(2024, 1, 29, 0, 6, 5, 806999)
         self.assertEqual(final_complex_date, final_complex_date_expectation)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
     # Add tests that make sure abstract time units correctly reset scope.
+    # Add tests for rollover, operations_safe, and chaining negative indexes.
+    # Add tests that try rollover=False while parent index is same, because "grand-parent" index incremented.

@@ -14,8 +14,9 @@ from .src._units import (
     Month,
     Quarter,
     Year,
-    Decade
+    Decade,
 )
+
 
 # Expression class to handle chaining and managing units
 class Expression:
@@ -31,12 +32,15 @@ class Expression:
             __unit (Unit): The Unit in this part of the expression
             __parent (Expression): The parent unit of this part of the expression
     """
+
     def __init__(self, root_datetime=None, *, __unit=None, __parent=None):
         if __parent and __parent.unit and __parent.unit.enum <= __unit.enum:
-            raise ValueError(f'{__parent.unit.name} cannot be factored by {__unit.name}')
+            raise ValueError(
+                f"{__parent.unit.name} cannot be factored by {__unit.name}"
+            )
         elif __parent and root_datetime is not None:
-            raise ValueError('A root_datetime should be passed with the root.')
-        
+            raise ValueError("A root_datetime should be passed with the root.")
+
         # Determining which part of expression `self` is
         self.is_root = self.is_scope = self.is_unit = False
         if not __parent:
@@ -63,30 +67,38 @@ class Expression:
         if self.is_root or self.is_scope:
             return
         elif self.index is None:
-            raise ValueError(f"Cannot access child units before indexing {self.unit.name}.")
+            raise ValueError(
+                f"Cannot access child units before indexing {self.unit.name}."
+            )
 
     def validate_index(self, index):
         """Validate the index value. For lazy chains, not during evaluation."""
         if not self.is_unit:
-            current_element = 'root' if self.is_root else 'scope' if self.is_scope else 'unknown-type'
-            raise ValueError(f'Can not index a {current_element}. Must be a unit.')
+            current_element = (
+                "root" if self.is_root else "scope" if self.is_scope else "unknown-type"
+            )
+            raise ValueError(f"Can not index a {current_element}. Must be a unit.")
 
         max_value = self.get_max_index()
         if not (-max_value - 1 <= index < max_value + 1):
-            raise ValueError(f"{self.unit.name} cannot accept index {index} of {self.parent.unit.name} (max: {max_value - 1})")
+            raise ValueError(
+                f"{self.unit.name} cannot accept index {index} of {self.parent.unit.name} (max: {max_value - 1})"
+            )
 
     def get_max_index(self):
         """Get max index for the unit."""
         if self.parent and self.parent.unit:
             return self.parent.unit.get_max_index(self.unit.name)
         else:
-            raise IndexError(f'{self.unit.name} has no parent to fetch its maximum index from.')
+            raise IndexError(
+                f"{self.unit.name} has no parent to fetch its maximum index from."
+            )
 
     def get_scope(self):
         """Get the root scope for an expression."""
         current = self
         if current.is_root:
-            raise ValueError('No scope has been defined.')
+            raise ValueError("No scope has been defined.")
 
         while not current.is_scope:
             current = current.parent
@@ -102,22 +114,26 @@ class Expression:
 
     def n(self, n: int | float):
         if not self.is_scope:
-            raise AttributeError('Can only create timedelta from a scope.')
+            raise AttributeError("Can only create timedelta from a scope.")
         return self.unit.delta(n)
 
     def __add__(self, other):
         """Handle addition of timedelta-like objects to create lazy expressions."""
         if self.is_root:
-            raise ValueError('Must access a scope property to apply operations.')
+            raise ValueError("Must access a scope property to apply operations.")
         elif isinstance(other, relativedelta):
             # Returns copy of itself, not performing in-place changes
             new_expr = deepcopy(self)
             new_expr.operations_delta += other
             return new_expr
         elif isinstance(other, Expression):
-            raise NotImplementedError('Combining and breaking Expression chains is upcoming.')
+            raise NotImplementedError(
+                "Combining and breaking Expression chains is upcoming."
+            )
         else:
-            raise TypeError(f"Unsupported operand type(s) for +: 'Expression' and '{type(other).__name__}'")
+            raise TypeError(
+                f"Unsupported operand type(s) for +: 'Expression' and '{type(other).__name__}'"
+            )
 
     def __radd__(self, other):
         """Right-hand addition, which just calls __add__ for now, while only timedelta supported."""
@@ -126,43 +142,59 @@ class Expression:
     def __sub__(self, other):
         """Handle subtraction of timedelta-like objects to create lazy expressions."""
         if self.is_root:
-            raise ValueError('Must access a scope property to apply operations.')
+            raise ValueError("Must access a scope property to apply operations.")
         elif isinstance(other, relativedelta):
             new_expr = deepcopy(self)
             new_expr.operations_delta -= other
             return new_expr
         elif isinstance(other, Expression):
-            raise NotImplementedError('Combining and breaking Expression chains is upcoming.')
+            raise NotImplementedError(
+                "Combining and breaking Expression chains is upcoming."
+            )
         else:
-            raise TypeError(f"Unsupported operand type(s) for -: 'Expression' and '{type(other).__name__}'")
+            raise TypeError(
+                f"Unsupported operand type(s) for -: 'Expression' and '{type(other).__name__}'"
+            )
 
     def __rsub__(self, other):
         """Right-hand subtraction."""
         if self.is_root:
-            raise ValueError('Must access a scope property to apply operations.')
+            raise ValueError("Must access a scope property to apply operations.")
         elif isinstance(other, Expression):
-            raise NotImplementedError('Combining and breaking Expression chains is upcoming.')
+            raise NotImplementedError(
+                "Combining and breaking Expression chains is upcoming."
+            )
         else:
-            raise NotImplementedError('Can not subtract a relative time Expression from another object.')
+            raise NotImplementedError(
+                "Can not subtract a relative time Expression from another object."
+            )
 
     def __call__(self, dt=None, rollover=True, operation_safe=False):
-        """Apply the expression to a date. Rollover controls whether to allow excess time to increment parent units."""    
+        """Apply the expression to a date. Rollover controls whether to allow excess time to increment parent units."""
         dt = dt if dt is not None else self.get_root().datetime
 
         if not dt:
-            raise ValueError('A datetime object is required.')
-        elif isinstance(dt, type(datetime.date)) and not isinstance(dt, type(datetime.datetime)):
+            raise ValueError("A datetime object is required.")
+        elif isinstance(dt, type(datetime.date)) and not isinstance(
+            dt, type(datetime.datetime)
+        ):
             # Convert datetime.date to datetime.datetime (default to midnight)
             dt = datetime.datetime.combine(dt, datetime.time.min)
         elif not isinstance(dt, datetime.datetime):
-            raise ValueError(f'datetime arg needs to be a datetime, not {type(dt)}')
+            raise ValueError(f"datetime arg needs to be a datetime, not {type(dt)}")
         elif rollover and operation_safe:
-            raise ValueError('The operation_safe flag is only effective when rollover is disabled.')
+            raise ValueError(
+                "The operation_safe flag is only effective when rollover is disabled."
+            )
         elif not self.is_scope and self.index is None:
-            raise IndexError(f'All units must be indexed. {self.unit.name} missing index.')
-            
+            raise IndexError(
+                f"All units must be indexed. {self.unit.name} missing index."
+            )
+
         dt = self._reset_to_root_scope(dt)
-        dt = self._apply_intervals(dt, rollover_allowed=rollover, operation_safe=operation_safe)
+        dt = self._apply_intervals(
+            dt, rollover_allowed=rollover, operation_safe=operation_safe
+        )
         return dt
 
     def _get_expression_chain(self):
@@ -186,7 +218,7 @@ class Expression:
     def _get_index_delta(interval):
         if interval.index >= 0:
             # 0-based indexing
-            adjustment = interval.index + 1 
+            adjustment = interval.index + 1
             # Accounts for variance in min possible time (e.g., second: 0, day: 1)
             adjustment -= interval.unit.scope_reset_residual
             return interval.unit.delta(adjustment)
@@ -202,8 +234,9 @@ class Expression:
             if last_parent_value != interval.parent.unit.value(dt):
                 raise IndexError(
                     f"Rollover occurred for {interval.parent.unit.name} from {last_parent_value}"
-                    f" to {interval.parent.unit.value(dt)}.")
-        
+                    f" to {interval.parent.unit.value(dt)}."
+                )
+
         # Get expression chain in unit descending order, from scope
         chain = self._get_expression_chain()
 
@@ -245,18 +278,18 @@ class Expression:
         for interval in chain:
             unit_name = interval.unit.name
 
-            index_str = f''
+            index_str = f""
             if interval.index:
                 index = interval.index + 1 if interval.index > 0 else interval.index
-                index_str = f'[{index}]'
+                index_str = f"[{index}]"
 
-            interval_str = f'{unit_name}{index_str}'
+            interval_str = f"{unit_name}{index_str}"
             if interval.operations_delta:
-                interval_str = f'{interval_str} + {interval.operations_delta}'
+                interval_str = f"{interval_str} + {interval.operations_delta}"
 
             parts.append(interval_str)
 
-        return ' > '.join(parts)
+        return " > ".join(parts)
 
     @property
     def decade(self):
@@ -322,4 +355,3 @@ class Expression:
     def microsecond(self):
         self.validate_scheme()
         return Expression(_Expression__unit=Microsecond(), _Expression__parent=self)
-        
