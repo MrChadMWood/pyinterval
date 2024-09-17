@@ -59,7 +59,7 @@ This Python library provides intuitive methods for defining relative points in t
   If you want operations to roll over, but not invalid indices, you can pass `operation_safe=True`:
   ```python
   feb_29_expr = expr.year.month[1].day[27] + expr.day.n(1)
-  feb_29_2021 = feb_29_expr(nonleap_date)
+  feb_29_2021 = feb_29_expr(nonleap_date, rollover=False, operation_safe=True)
   print(feb_29_2021)
 
   2021-03-01 00:00:00
