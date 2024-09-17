@@ -19,7 +19,7 @@ This Python library provides intuitive methods for defining relative points in t
 </details>
 
 <details>
-  <summary>**Negative Indexing**: Support for negative indices to easily access "last" instances of time units (e.g., the last day of the month).</summary>
+  <summary>Negative Indexing: Support for negative indices to easily access "last" instances of time units (e.g., the last day of the month).</summary>
 
   ```python
   expr.month.day[-1] # Last day of the month
@@ -27,7 +27,7 @@ This Python library provides intuitive methods for defining relative points in t
 </details>
 
 <details>
-  <summary>**Rollover Handling**: Control whether units roll over into the next larger unit or strictly validate.</summary>
+  <summary>Rollover Handling: Control whether units roll over into the next larger unit or strictly validate.</summary>
 
   By default, invalid indices roll over into the parent. For example:
   ```python
@@ -67,7 +67,7 @@ This Python library provides intuitive methods for defining relative points in t
 </details>
 
 <details>
-  <summary>**More Time Intervals**: Provides proxies for additional units of time, such as centisecond, decisecond, and decade.</summary>
+  <summary>More Time Intervals: Provides proxies for additional units of time, such as centisecond, decisecond, and decade.</summary>
 
   ```python
   print(
@@ -91,7 +91,7 @@ This Python library provides intuitive methods for defining relative points in t
 </details>
 
 <details>
-  <summary>**Lazy Evaluation**: Define relative time objects and evaluate them against a specific `datetime` object later.</summary>
+  <summary>Lazy Evaluation: Define relative time objects and evaluate them against a specific `datetime` object later.</summary>
 
   ```python
   # Last day of the month
@@ -106,7 +106,7 @@ This Python library provides intuitive methods for defining relative points in t
 </details>
 
 <details>
-  <summary>Rough validation is provided during chaining and indexing, but full validation occurs only during evaluation.</summary>
+  <summary>Lazy Chain Validation: Rough validation is provided during chaining and indexing, but full validation occurs only during evaluation.</summary>
 
   ```python
   expr.month.day[99]
@@ -114,14 +114,14 @@ This Python library provides intuitive methods for defining relative points in t
   ----------------------------------------------------------------
   ValueError                                Traceback (most recent call last)
   Cell In[4], line 1
-  ----> 1 exp.month.day[99]
+  ----> 1 expr.month.day[99]
 
   ValueError: Day cannot accept index 99 of Month (max: 34)
   ```
 </details>
 
 <details>
-  <summary>**Lazy Arithmetic Evaluation**: Add or subtract relative deltas from an `Expression`. The library ensures proper order of operations during evaluation.</summary>
+  <summary>Lazy Arithmetic Evaluation: Add or subtract relative deltas from an `Expression`. The library ensures proper order of operations during evaluation.</summary>
 
   ```python
   some_date = (
@@ -136,12 +136,46 @@ This Python library provides intuitive methods for defining relative points in t
 </details>
 
 <details>
-  <summary>**Self-Explanatory String Representations**: The `__repr__` method produces an effective representation of the relative time expression.</summary>
+  <summary>Self-Explanatory String Representations: The `__repr__` method produces an effective representation of the relative time expression.</summary>
 
   ```python
   print(some_date)
 
   Year > Month[3] > Day[1] + relativedelta(months=-1, days=-1) > Hour[12] > Minute[45]
+  ```
+</details>
+
+<details>
+  <summary>Arithmetic With Timedelta: The `Expression` class will cache operations performed on scope units for evaluation while the chain is being evaluated.</summary>
+
+  Any operations will be applied correctly on the unit they were designated to operate on, before the remainder of the expression evaluates.
+
+  ```python
+  from pyinterval.expression import Expression
+  from datetime import datetime
+  
+  expr = Expression()            # Instantiate the Expression object
+  date_expr = expr.year.month[1] # Start with the year and second month
+  date_expr += expr.day.n(1)     # Add 1 day to the expression
+  date_expr = date_expr.day[27]  # Set the 28th day (0-based, so index 27)
+  date_expr -= expr.month.n(1)   # Subtract one month from the expression
+
+  time_expr = (                  # Set the time to 01:01:01.101001
+      date_expr
+      .hour[0]
+      .minute[0]
+      .second[0]
+      .decisecond[0]
+      .millisecond[0]
+      .microsecond[0]
+  )
+
+  final_expr = time_expr + expr.month.n(1)  # Add one month to the final result
+  result = final_expr(datetime(2021, 1 ,1)) # Evaluate the expression with a non-leap year
+
+  print(result)
+
+  2021-03-01 01:01:01.101001
   ```
 </details>
 
@@ -152,7 +186,7 @@ This Python library provides intuitive methods for defining relative points in t
 You can chain intervals together to describe increasingly granular time ranges. For example:
 
 ```python
-exp = Expression().year.month[2].day[4]  # 5th day of the 3rd month (0-based indexing)
+expr = Expression().year.month[2].day[4]  # 5th day of the 3rd month (0-based indexing)
 ```
 
 The structure consists of 4 main parts: root, root scope, scope units, and indices:
@@ -169,14 +203,14 @@ Root().root_scope.scope_unit[index]
 The root scope cannot be indexed directly. However, you can call a root scope's `n` attribute (e.g., `Expression().quarter.n(1)`) to generate a `timedelta`.
 
 ```python
-print(exp.quarter.n(2))  # 6 months relative to the current date
+print(expr.quarter.n(2))  # 6 months relative to the current date
 
 relativedelta(months=+6)
 ```
 
 You can pass a date to a scope unit to evaluate the expression and create an absolute `datetime`.
 ```python
-relative_date = exp.year.quarter[-1].month[1].week[-1].day[5]
+relative_date = expr.year.quarter[-1].month[1].week[-1].day[5]
 absolute_date = relative_date(datetime.now())
 print(absolute_date)
 
