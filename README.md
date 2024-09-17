@@ -9,82 +9,110 @@ This Python library provides intuitive methods for defining relative points in t
 ## Features
 
 - **Flexible Interval Expressions**: Define points in time by chaining properties of the `Expression` object and indexing them.
-  ```python
-  # Second day of the 3rd week of the month, 0-based indexing
-  expr = Expression()
-  expr.month.week[2].day[1]
-  ```
+  <details>
+    <summary>Example</summary>
+
+    ```python
+    # Second day of the 3rd week of the month, 0-based indexing
+    expr = Expression()
+    expr.month.week[2].day[1]
+    ```
+  </details>
 
 - **Negative Indexing**: Support for negative indices to easily access "last" instances of time units (e.g., the last day of the month).
-  ```python
-  expr.month.day[-1] # Last day of the month
-  ```
+  <details>
+    <summary>Example</summary>
+
+    ```python
+    expr.month.day[-1] # Last day of the month
+    ```
+  </details>
 
 - **Rollover Handling**: Control whether units roll over into the next larger unit or strictly validate. Examples provided later in this file.
 
 - **More Time Intervals**: Provides proxies for additional units of time, such as centisecond, decisecond, and decade.
-  ```python
-  print(
-    expr  
-    .decade
-    .year[0]
-    .quarter[0]
-    .month[0]
-    .week[0]
-    .day[0]
-    .hour[0]
-    .minute[0]
-    .second[0]
-    .decisecond[0]
-    .millisecond[0]
-    .microsecond[0]
-  )
+  <details>
+    <summary>Example</summary>
 
-  Decade > Year[1] > Quarter[1] > Month[1] > Week[1] > Day[1] > Hour[1] > Minute[1] > Second[1] > Decisecond[1] > Millisecond[1] > Microsecond[1]
-  ```
+    ```python
+    print(
+      expr  
+      .decade
+      .year[0]
+      .quarter[0]
+      .month[0]
+      .week[0]
+      .day[0]
+      .hour[0]
+      .minute[0]
+      .second[0]
+      .decisecond[0]
+      .millisecond[0]
+      .microsecond[0]
+    )
+
+    Decade > Year[1] > Quarter[1] > Month[1] > Week[1] > Day[1] > Hour[1] > Minute[1] > Second[1] > Decisecond[1] > Millisecond[1] > Microsecond[1]
+    ```
+  </details>
 
 - **Lazy Evaluation**: Define relative time objects and evaluate them against a specific `datetime` object later.
-  ```python
-  # Last day of the month
-  last_day_of_month = expr.month.day[-1]
+  <details>
+    <summary>Example</summary>
 
-  # Evaluates after recieving a baseline
-  last_day_this_month = last_month_day(datime.now())
-  print(last_day_this_month)
+    ```python
+    # Last day of the month
+    last_day_of_month = expr.month.day[-1]
 
-  2024-09-30 00:00:00
-  ```
+    # Evaluates after recieving a baseline
+    last_day_this_month = last_month_day(datime.now())
+    print(last_day_this_month)
+
+    2024-09-30 00:00:00
+    ```
+  </details>
 
 - **Lazy Chain Validation**: Rough validation is provided during chaining and indexing, but full validation occurs only during evaluation.
-  ```python
-  expr.month.day[99]
+  <details>
+    <summary>Example</summary>
 
-  ----------------------------------------------------------------
-  ValueError                                Traceback (most recent call last)
-  Cell In[4], line 1
-  ----> 1 exp.month.day[99]
+    ```python
+    expr.month.day[99]
 
-  ValueError: Day cannot accept index 99 of Month (max: 34)
-  ```
+    ----------------------------------------------------------------
+    ValueError                                Traceback (most recent call last)
+    Cell In[4], line 1
+    ----> 1 exp.month.day[99]
+
+    ValueError: Day cannot accept index 99 of Month (max: 34)
+    ```
+  </details>
 
 - **Lazy Arithmetic Evaluation**: Add or subtract relative deltas from an `Expression`. The library ensures proper order of operations during evaluation.
-  ```python
-  some_date = (
-      expr.year.month[2].day[0]  # First day of March
-      - expr.day.n(1)            # Subtract a day
-      - expr.month.n(1)          # Subtract a month
-  ).hour[11].minute[44]          # Set hour and minute
-  some_date(datetime.now())
+  <details>
+    <summary>Example</summary>
 
-  datetime.datetime(2024, 1, 31, 11, 44)
-  ```
+    ```python
+    some_date = (
+        expr.year.month[2].day[0]  # First day of March
+        - expr.day.n(1)            # Subtract a day
+        - expr.month.n(1)          # Subtract a month
+    ).hour[11].minute[44]          # Set hour and minute
+    some_date(datetime.now())
+
+    datetime.datetime(2024, 1, 31, 11, 44)
+    ```
+  </details>
 
 - **Self-Explanatory String Representations**: The `__repr__` method produces an effective representation of the relative time expression.
-  ```python
-  print(some_date)
+  <details>
+    <summary>Example</summary>
 
-  Year > Month[3] > Day[1] + relativedelta(months=-1, days=-1) > Hour[12] > Minute[45]
-  ```
+    ```python
+    print(some_date)
+
+    Year > Month[3] > Day[1] + relativedelta(months=-1, days=-1) > Hour[12] > Minute[45]
+    ```
+  </details>
 
 ---
 
