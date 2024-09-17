@@ -166,6 +166,37 @@ This Python library provides intuitive methods for defining relative points in t
   ```
 </details>
 
+<details>
+  <summary>High Performance: Complex relative dates are evaluated quickly and efficiently.</summary>
+
+  ```python
+  %%timeit
+
+  expr = Expression()
+  date_expr = expr.year.month[-11]
+  date_expr += expr.day.n(59)
+  date_expr -= expr.month.n(1634)
+
+  time_expr = (
+      date_expr
+      .hour[-823]
+      .minute[-59]
+      .second[-59]
+      .decisecond[-9]
+      .millisecond[-99]
+      .microsecond[-999]
+  )
+
+  final_expr = time_expr + expr.month.n(1)
+
+  result1 = final_expr(datetime(2021, 1 ,1)) # Evaluate the expression with a non-leap year
+  result2 = final_expr(datetime(2024, 1 ,1)) # Evaluate the expression with a leap year
+  assert result1 != result2
+
+  385 μs ± 4.22 μs per loop (mean ± std. dev. of 7 runs, 1,000 loops each)
+  ```
+</details>
+
 ---
 
 ## Interval Expression Rules
