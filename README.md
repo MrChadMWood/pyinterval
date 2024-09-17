@@ -124,33 +124,6 @@ This Python library provides intuitive methods for defining relative points in t
   <summary>Lazy Arithmetic Evaluation: Add or subtract relative deltas from an `Expression`. The library ensures proper order of operations during evaluation.</summary>
 
   ```python
-  some_date = (
-      expr.year.month[2].day[0]  # First day of March
-      - expr.day.n(1)            # Subtract a day
-      - expr.month.n(1)          # Subtract a month
-  ).hour[11].minute[44]          # Set hour and minute
-  some_date(datetime.now())
-
-  datetime.datetime(2024, 1, 31, 11, 44)
-  ```
-</details>
-
-<details>
-  <summary>Self-Explanatory String Representations: The `__repr__` method produces an effective representation of the relative time expression.</summary>
-
-  ```python
-  print(some_date)
-
-  Year > Month[3] > Day[1] + relativedelta(months=-1, days=-1) > Hour[12] > Minute[45]
-  ```
-</details>
-
-<details>
-  <summary>Arithmetic With Timedelta: The `Expression` class will cache operations performed on scope units for evaluation while the chain is being evaluated.</summary>
-
-  Any operations will be applied correctly on the unit they were designated to operate on, before the remainder of the expression evaluates.
-
-  ```python
   from pyinterval.expression import Expression
   from datetime import datetime
   
@@ -176,6 +149,27 @@ This Python library provides intuitive methods for defining relative points in t
   print(result)
 
   2021-03-01 01:01:01.101001
+  ```
+
+  ```python
+  some_date = (
+      expr.year.month[2].day[0]  # First day of March
+      - expr.day.n(1)            # Subtract a day
+      - expr.month.n(1)          # Subtract a month
+  ).hour[11].minute[44]          # Set hour and minute
+  some_date(datetime.now())
+
+  datetime.datetime(2024, 1, 31, 11, 44)
+  ```
+</details>
+
+<details>
+  <summary>Self-Explanatory String Representations: The `__repr__` method produces an effective representation of the relative time expression.</summary>
+
+  ```python
+  print(some_date)
+
+  Year > Month[3] > Day[1] + relativedelta(months=-1, days=-1) > Hour[12] > Minute[45]
   ```
 </details>
 
