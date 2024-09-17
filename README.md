@@ -213,7 +213,7 @@ print(absolute_date)
 - **Timedelta Compatibility**: Allow arithmetic with `timedelta` objects on expression chains (e.g., `chain - timedelta(days=1)`).
 - **Dynamic Chain Building**: Provide built-in methods to dynamically create chains, reducing manual effort for constructing expressions.
 - **Chain Operators**: Support chaining with the `+` operator and breaking chains with the `-` operator.
-- **Advanced Smart Indexing**: Allow `[start:start]` to be expressions and `[:step]` to be a timedelta.
+- **Advanced Smart Indexing**: Allow `[start:stop]` to be expressions and `[:step]` to be a timedelta.
 - **Rust Implementation**: Rebuild the library in Rust, with Python bindings.
 
 ---
