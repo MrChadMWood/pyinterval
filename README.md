@@ -144,22 +144,15 @@ This Python library provides intuitive methods for defining relative points in t
   )
 
   final_expr = time_expr + expr.month.n(1)  # Add one month to the final result
-  result = final_expr(datetime(2021, 1 ,1)) # Evaluate the expression with a non-leap year
 
+  result = final_expr(datetime(2021, 1 ,1)) # Evaluate the expression with a non-leap year
+  print(result)
+
+  result = final_expr(datetime(2024, 1 ,1)) # Evaluate the expression with a leap year
   print(result)
 
   2021-03-01 01:01:01.101001
-  ```
-
-  ```python
-  some_date = (
-      expr.year.month[2].day[0]  # First day of March
-      - expr.day.n(1)            # Subtract a day
-      - expr.month.n(1)          # Subtract a month
-  ).hour[11].minute[44]          # Set hour and minute
-  some_date(datetime.now())
-
-  datetime.datetime(2024, 1, 31, 11, 44)
+  2024-02-29 01:01:01.101001
   ```
 </details>
 
