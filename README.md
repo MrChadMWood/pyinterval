@@ -64,7 +64,7 @@ This Python library provides intuitive methods for defining relative points in t
 
   2021-03-01 00:00:00
   ```
-<detail>
+</detail>
 
 <details>
   <summary>**More Time Intervals**: Provides proxies for additional units of time, such as centisecond, decisecond, and decade.</summary>
