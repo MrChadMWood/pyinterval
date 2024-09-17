@@ -216,7 +216,7 @@ Root().root_scope.scope_unit[index]
 - **Root**: The `Expression()` object is always the root, encapsulating the logic.
 - **Root Scope**: Defines the top-level time unit (e.g., `year`).
 - **Scope Unit**: Represents smaller time units (e.g., `month`, `day`).
-- **Index**: Represents the position within the scope unit (e.g., `month[2]` refers to the 3rd month).
+- **Index**: Represents the position within the parent element (e.g., `year.month[2]` refers to the 3rd month of the year).
 
 The root scope cannot be indexed directly. However, you can call a root scope's `n` attribute (e.g., `Expression().quarter.n(1)`) to generate a `timedelta`.
 
