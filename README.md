@@ -1,9 +1,3 @@
----
-
-This library is still in its **alpha stage**. Contributions and feedback are welcome.
-
----
-
 # Relative Dates Library
 
 This Python library provides intuitive methods for defining relative points in time using a custom protocol. It supports chaining of datetime intervals in a parent-child fashion, abstracted with attributes and indexes. For example: `year.month[2]`.
