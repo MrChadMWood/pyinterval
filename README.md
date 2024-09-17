@@ -40,7 +40,7 @@ This Python library provides intuitive methods for defining relative points in t
     .microsecond[0]
   )
 
-  Decade > Year > Quarter[1] > Month[1] > Week[1] > Day[1] > Hour[1] > Minute[1] > Second[1] > Decisecond[1] > Millisecond[1] > Microsecond[1]
+  Decade > Year[1] > Quarter[1] > Month[1] > Week[1] > Day[1] > Hour[1] > Minute[1] > Second[1] > Decisecond[1] > Millisecond[1] > Microsecond[1]
   ```
 
 - **Lazy Evaluation**: Define relative time objects and evaluate them against a specific `datetime` object later.
