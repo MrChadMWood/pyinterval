@@ -279,8 +279,8 @@ class Expression:
             unit_name = interval.unit.name
 
             index_str = f""
-            if interval.index:
-                index = interval.index + 1 if interval.index > 0 else interval.index
+            if interval.index is not None:
+                index = interval.index + 1 if interval.index >= 0 else interval.index
                 index_str = f"[{index}]"
 
             interval_str = f"{unit_name}{index_str}"
