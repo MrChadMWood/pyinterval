@@ -9,7 +9,7 @@ This Python library provides intuitive methods for defining relative points in t
 ## Features
 
 <details>
-  <summary>**Flexible Interval Expressions**: Define points in time by chaining properties of the `Expression` object and indexing them.</summary>
+  <summary>Flexible Interval Expressions: Define points in time by chaining properties of the `Expression` object and indexing them.</summary>
 
   ```python
   # Second day of the 3rd week of the month, 0-based indexing
