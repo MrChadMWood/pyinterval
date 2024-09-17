@@ -26,7 +26,7 @@ This Python library provides intuitive methods for defining relative points in t
   ```
 </details>
 
-<detail>
+<details>
   <summary>**Rollover Handling**: Control whether units roll over into the next larger unit or strictly validate.</summary>
 
   By default, invalid indices roll over into the parent. For example:
@@ -64,7 +64,7 @@ This Python library provides intuitive methods for defining relative points in t
 
   2021-03-01 00:00:00
   ```
-</detail>
+</details>
 
 <details>
   <summary>**More Time Intervals**: Provides proxies for additional units of time, such as centisecond, decisecond, and decade.</summary>
