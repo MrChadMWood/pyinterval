@@ -3,7 +3,23 @@ name = "pyinterval"
 version = "0.1.0"
 description = "A library for defining and working with relative dates and intervals of time."
 readme = "README.md"
+authors = [
+    { name = "Chad Wood", email = "chad@thewoods.sbs" }
+]
+license = { file = "LICENSE" }
 requires-python = ">=3.12"
 dependencies = [
     "python-dateutil == 2.9.0",
 ]
+classifiers = [
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Programming Language :: Python :: 3.12",
+    "Operating System :: OS Independent",
+]
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]

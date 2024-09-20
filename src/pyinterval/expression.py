@@ -1,7 +1,7 @@
 from dateutil.relativedelta import relativedelta
 import datetime
 from copy import deepcopy
-from .src._units import (
+from ._units import (
     Microsecond,
     Millisecond,
     Centisecond,
