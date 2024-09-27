@@ -1,6 +1,6 @@
 [project]
 name = "pyinterval"
-version = "0.1.0"
+version = "0.1.1"
 description = "A library for defining and working with relative dates and intervals of time."
 readme = "README.md"
 authors = [

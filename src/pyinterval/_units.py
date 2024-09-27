@@ -61,8 +61,7 @@ class Microsecond(Unit):
     }
 
     def reset_scope(self, date):
-        microsecond_part = date.microsecond % 1000
-        new_microsecond_value = (date.microsecond // 1000) * 1000 + microsecond_part
+        new_microsecond_value = (date.microsecond // 1000) * 1000
         return super().reset_scope(date, {"microsecond": new_microsecond_value})
 
     def value(self, dt):
